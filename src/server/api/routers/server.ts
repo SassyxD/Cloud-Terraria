@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { z } from "zod";
 
 import {
@@ -24,15 +24,17 @@ export const serverRouter = createTRPCRouter({
       });
 
       const out = await callLambda({ action: "CREATE", userId: userId, ...input });
-      if (out?.ok && out.instanceId) {
+      const instanceId = typeof out?.instanceId === "string" ? out.instanceId : undefined;
+      if (out?.ok && instanceId) {
         await ctx.db.serverInstance.update({
           where: { id: rec.id },
-          data: { instanceId: out.instanceId, state: "PENDING" },
+          data: { instanceId, state: "PENDING" },
         });
         return { id: rec.id };
       }
 
       await ctx.db.serverInstance.update({ where: { id: rec.id }, data: { state: "ERROR" } });
-      throw new Error(out?.error ?? "Lambda CREATE failed");
+      const errorMessage = typeof out?.error === "string" ? out.error : String(out?.error ?? "Lambda CREATE failed");
+      throw new Error(errorMessage);
     }),
 });
