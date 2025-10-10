@@ -16,11 +16,14 @@ export const serverRouter = createTRPCRouter({
       port: z.number().default(7777),
     }))
     .mutation(async ({ ctx, input }) => {
+      // `protectedProcedure` guarantees `ctx.session.user` exists
+      const userId = ctx.session.user.id as string;
+
       const rec = await ctx.db.serverInstance.create({
-        data: { userId: ctx.session.user.id, ...input },
+        data: { userId, ...input },
       });
 
-      const out = await callLambda({ action: "CREATE", userId: ctx.session.user.id, ...input });
+      const out = await callLambda({ action: "CREATE", userId: userId, ...input });
       if (out?.ok && out.instanceId) {
         await ctx.db.serverInstance.update({
           where: { id: rec.id },
