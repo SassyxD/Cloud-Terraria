@@ -8,7 +8,7 @@ variable "allow_terraria_cidr" { type = string  default = "0.0.0.0/0" }
 variable "open_ssh"            { type = bool    default = false }
 
 # EC2 Parameters
-variable "ami_id"         { type = string }  # กรอก Ubuntu 22.04 AMI ตาม region
+variable "ami_id"         { type = string }  # Enter Ubuntu 22.04 AMI according to the region
 variable "instance_type"  { type = string  default = "t3.small" }
 variable "key_name"       { type = string  default = "" } # เว้นว่างถ้าไม่ใช้ SSH
 
