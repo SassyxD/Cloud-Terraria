@@ -1,6 +1,12 @@
 import NextAuth from "next-auth";
 import { authConfig } from "~/server/auth/config";
 
-// Create the NextAuth handlers directly here so they are available at runtime
-// for the app router. We cast to `any` because NextAuth's types are complex.
-export const { GET, POST } = NextAuth(authConfig as any);
+const nextAuthHandler = NextAuth(authConfig as any);
+
+export async function GET(request: Request) {
+	return await (nextAuthHandler as any).GET?.(request) ?? new Response(null, { status: 404 });
+}
+
+export async function POST(request: Request) {
+	return await (nextAuthHandler as any).POST?.(request) ?? new Response(null, { status: 404 });
+}
