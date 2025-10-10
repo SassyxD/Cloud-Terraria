@@ -10,7 +10,7 @@ variable "open_ssh"            { type = bool    default = false }
 # EC2 Parameters
 variable "ami_id"         { type = string }  # Enter Ubuntu 22.04 AMI according to the region
 variable "instance_type"  { type = string  default = "t3.small" }
-variable "key_name"       { type = string  default = "" } # เว้นว่างถ้าไม่ใช้ SSH
+variable "key_name"       { type = string  default = "" } # Leave blank if not using SSH
 
 # Lambda
 variable "lambda_name"    { type = string  default = "terraria-ec2-manager" }
