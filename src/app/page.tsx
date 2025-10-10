@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import Link from "next/link";
 
 import { LatestPost } from "~/app/_components/post";
-import * as authModule from "~/server/auth";
+import { auth } from "~/server/auth/index";
 import { api, HydrateClient } from "~/trpc/server";
+import type { Session } from "next-auth";
 
 export default async function Home() {
   const hello = await api.post.hello({ text: "from tRPC" });
-  const session = await (authModule as any).auth();
+  const session: Session | null = await auth();
 
   if (session?.user) {
     void api.post.getLatest.prefetch();
