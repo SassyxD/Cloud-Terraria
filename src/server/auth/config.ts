@@ -3,6 +3,7 @@ import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 
 import { db } from "~/server/db";
+import { env } from "~/env";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -32,7 +33,13 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    DiscordProvider,
+    // Initialize the Discord provider using environment variables. This ensures the
+    // provider is properly configured at runtime instead of passing the provider
+    // factory function directly which causes runtime errors.
+    DiscordProvider({
+      clientId: env.AUTH_DISCORD_ID,
+      clientSecret: env.AUTH_DISCORD_SECRET,
+    }),
     /**
      * ...add more providers here.
      *

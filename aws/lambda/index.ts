@@ -12,7 +12,7 @@ const KEY_NAME = process.env.KEY_NAME || "";
 
 const ec2 = new EC2Client({ region: REGION });
 
-export const handler = async (event) => {
+export const handler = async (event: any) => {
   const body = typeof event.body === "string" ? JSON.parse(event.body) : (event.body ?? event);
   const action = body.action;
   const instanceId = body.instanceId;
@@ -68,6 +68,7 @@ runcmd:
     return { ok: false, error: "unknown action" };
   } catch (e) {
     console.error(e);
-    return { ok: false, error: e?.message ?? "error" };
+    const errMsg = (e as any)?.message ?? String(e ?? "error");
+    return { ok: false, error: errMsg };
   }
 };
