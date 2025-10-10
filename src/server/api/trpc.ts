@@ -7,13 +7,13 @@
  * need to use are documented accordingly near the end.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+import type { Session } from "next-auth";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
-import * as authModule from "~/server/auth";
+import * as authModule from "~/server/auth/index";
 
 /**
  * 1. CONTEXT
@@ -28,7 +28,7 @@ import * as authModule from "~/server/auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await (authModule as any).auth();
+  const session: Session | null = await (authModule.auth as () => Promise<Session | null>)();
 
   return {
     db,

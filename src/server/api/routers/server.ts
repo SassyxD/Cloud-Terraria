@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { z } from "zod";
 
 import {
@@ -7,6 +6,7 @@ import {
 } from "~/server/api/trpc";
 
 import { callLambda } from "~/server/aws/lambdaClient";
+import type { LambdaResponse } from "~/server/aws/lambdaClient";
 
 export const serverRouter = createTRPCRouter({
   create: protectedProcedure
@@ -16,16 +16,16 @@ export const serverRouter = createTRPCRouter({
       port: z.number().default(7777),
     }))
     .mutation(async ({ ctx, input }) => {
-      // `protectedProcedure` guarantees `ctx.session.user` exists
-      const userId = ctx.session.user.id as string;
+  // `protectedProcedure` guarantees `ctx.session.user` exists
+  const userId = ctx.session.user.id;
 
       const rec = await ctx.db.serverInstance.create({
         data: { userId, ...input },
       });
 
-      const out = await callLambda({ action: "CREATE", userId: userId, ...input });
-      const instanceId = typeof out?.instanceId === "string" ? out.instanceId : undefined;
-      if (out?.ok && instanceId) {
+  const out = (await callLambda({ action: "CREATE", userId: userId, ...input })) as LambdaResponse | null;
+  const instanceId = typeof out?.instanceId === "string" ? out.instanceId : undefined;
+  if (out?.ok && instanceId) {
         await ctx.db.serverInstance.update({
           where: { id: rec.id },
           data: { instanceId, state: "PENDING" },
