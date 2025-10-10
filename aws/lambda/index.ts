@@ -68,6 +68,7 @@ runcmd:
     return { ok: false, error: "unknown action" };
   } catch (e) {
     console.error(e);
-    return { ok: false, error: e?.message ?? "error" };
+    const errMsg = (e as any)?.message ?? String(e ?? "error");
+    return { ok: false, error: errMsg };
   }
 };
