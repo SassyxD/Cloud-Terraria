@@ -1,126 +1,216 @@
-# README — Terrakit (t3 + NextAuth + Lambda + Terraform)
+# Cloud Terraria
 
-Per-user Terraria server spawner. Users log in (Google/LINE/Email), press create, and get their own EC2 instance running a Dockerized Terraria server on TCP 7777. Infrastructure via Terraform. AWS Lambda controls EC2 lifecycle. tRPC protects endpoints with session.
-
-## Contents
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Repository Structure](#repository-structure)
-- [Quick Start](#quick-start)
-- [Environment Variables](#environment-variables)
-- [Database and Prisma](#database-and-prisma)
-- [Auth Setup](#auth-setup)
-- [tRPC and App Wiring](#trpc-and-app-wiring)
-- [Terraform Infrastructure](#terraform-infrastructure)
-- [Lambda Function](#lambda-function)
-- [Security and Cost Controls](#security-and-cost-controls)
-- [Troubleshooting](#troubleshooting)
-- [Roadmap](#roadmap)
-- [License](#license)
+A modern, scalable Terraria server management platform built with Next.js and AWS. Deploy and manage personal Terraria servers with just a few clicks through an intuitive web interface.
 
 ## Overview
 
-- Each authenticated user controls their own Terraria server.
-- Next.js (t3) frontend calls tRPC mutations and queries.
-- The server invokes an AWS Lambda which creates/starts/stops/terminates EC2.
-- EC2 boots Ubuntu, installs Docker via cloud-init, and runs a Terraria container.
-- Prisma persists server metadata (instanceId, state, publicIp, port).
+Cloud Terraria enables users to create, manage, and access their own dedicated Terraria servers in the cloud. Each authenticated user can deploy EC2 instances running containerized Terraria servers, with full lifecycle management through a beautiful web dashboard.
+
+### Key Features
+
+- **One-Click Deployment**: Create dedicated Terraria servers instantly
+- **User Authentication**: Secure Discord OAuth integration
+- **Server Management**: Start, stop, and monitor server status
+- **Cost Effective**: Pay-per-use EC2 instances with automatic scaling
+- **Modern UI**: Responsive, Terraria-themed interface
+- **Infrastructure as Code**: Fully automated AWS deployment via Terraform
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Deployment](#deployment)
+- [Configuration](#configuration)
+- [Development](#development)
+- [API Reference](#api-reference)
+- [Infrastructure](#infrastructure)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and pnpm
+- AWS CLI configured with appropriate credentials
+- Terraform 1.0+
+- Discord application for OAuth
+
+### Quick Start
+
+1. **Clone and install dependencies**
+   ```bash
+   git clone https://github.com/SassyxD/Cloud-Terraria.git
+   cd Cloud-Terraria
+   pnpm install
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Deploy AWS infrastructure**
+   ```bash
+   # Windows
+   ./deploy-aws.bat
+   
+   # Unix/Linux/macOS
+   ./deploy-aws.sh
+   ```
+
+4. **Start development server**
+   ```bash
+   pnpm dev
+   ```
+
+Visit `http://localhost:3000` to access the application.
 
 ## Architecture
 
-```
-[Browser]
-   │
-   ▼
-Next.js (t3) + NextAuth  ──>  tRPC (protected)  ──>  AWS SDK  ──> Lambda
-                                       │                          │
-                                       │                          ▼
-                                   Prisma/Postgres             EC2 (Ubuntu)
-                                                                └─ Docker: tccr/terraria-server
-```
-
-## Tech Stack
-
-- App: Next.js (t3), tRPC, Tailwind, NextAuth
-- Data: Prisma + PostgreSQL
-- AWS: Lambda (Node.js 20), EC2, VPC, Security Group, IAM
-- IaC: Terraform
-
-## Repository Structure
+Cloud Terraria follows a modern serverless architecture pattern:
 
 ```
-terrakit/
-├─ .env
-├─ .env.example
-├─ package.json
-├─ prisma/
-│  ├─ schema.prisma
-│  └─ migrations/...
-├─ src/
-│  ├─ server/
-│  │  ├─ db.ts
-│  │  ├─ auth.ts
-│  │  ├─ aws/lambdaClient.ts
-│  │  └─ api/
-│  │     ├─ trpc.ts
-│  │     ├─ root.ts
-│  │     └─ routers/server.ts
-│  ├─ pages/
-│  │  ├─ index.tsx
-│  │  └─ dashboard.tsx
-│  └─ components/
-│     ├─ CreateServerButton.tsx
-│     └─ ServerCard.tsx
-├─ aws/
-│  └─ lambda/
-│     ├─ index.js
-│     └─ package.json
-└─ infra/terraform/
-   ├─ versions.tf
-   ├─ variables.tf
-   ├─ vpc.tf
-   ├─ sg.tf
-   ├─ iam.tf
-   ├─ lambda.tf
-   ├─ outputs.tf
-   └─ main.tf
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Browser   │───▶│   Next.js    │───▶│   tRPC API  │───▶│ AWS Lambda  │
+│             │    │   Frontend   │    │  (Protected)│    │   (EC2 Mgr) │
+└─────────────┘    └──────────────┘    └─────────────┘    └─────────────┘
+                           │                                       │
+                           ▼                                       ▼
+                   ┌──────────────┐                        ┌─────────────┐
+                   │   Prisma     │                        │   EC2       │
+                   │   Database   │                        │  Instance   │
+                   │   (SQLite)   │                        │  (Ubuntu +  │
+                   └──────────────┘                        │   Docker)   │
+                                                          └─────────────┘
 ```
 
-## Quick Start
+### Key Components
 
-1) Bootstrap app
+- **Frontend**: Next.js 15 with Tailwind CSS and TypeScript
+- **Authentication**: NextAuth.js with Discord OAuth
+- **API Layer**: tRPC with session-based protection
+- **Database**: Prisma ORM with SQLite (dev) / PostgreSQL (prod)
+- **Infrastructure**: AWS Lambda, EC2, VPC managed by Terraform
+- **Containerization**: Docker-based Terraria server deployment
+
+## Technology Stack
+
+### Frontend
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling
+- **tRPC**: End-to-end typesafe APIs
+- **NextAuth.js**: Authentication solution
+
+### Backend & Infrastructure
+- **AWS Lambda**: Serverless compute for EC2 management
+- **Amazon EC2**: Virtual machines for Terraria servers
+- **Terraform**: Infrastructure as Code
+- **Prisma**: Database ORM and migration tool
+- **Docker**: Containerized Terraria server deployment
+
+### Development Tools
+- **ESLint**: Code linting and formatting
+- **Prettier**: Code formatting
+- **Husky**: Git hooks for quality gates
+- **Conventional Commits**: Standardized commit messages
+
+## Project Structure
+
+```
+cloud-terraria/
+├── src/
+│   ├── app/                          # Next.js App Router
+│   │   ├── api/
+│   │   │   ├── auth/[...nextauth]/   # NextAuth.js routes
+│   │   │   └── trpc/[trpc]/          # tRPC API endpoints
+│   │   ├── auth/                     # Authentication pages
+│   │   ├── _components/              # Page-specific components
+│   │   ├── layout.tsx                # Root layout
+│   │   └── page.tsx                  # Home page
+│   ├── components/                   # Reusable UI components
+│   │   ├── CreateServerButton.tsx
+│   │   ├── ServerCard.tsx
+│   │   ├── EmptyState.tsx
+│   │   └── Loading.tsx
+│   ├── server/                       # Backend logic
+│   │   ├── api/                      # tRPC routers
+│   │   ├── auth/                     # Authentication config
+│   │   ├── aws/                      # AWS integrations
+│   │   └── db.ts                     # Database connection
+│   ├── styles/                       # Global styles
+│   ├── types/                        # TypeScript definitions
+│   └── env.js                        # Environment validation
+├── aws/
+│   └── lambda/                       # Lambda function code
+│       ├── index.js                  # EC2 management logic
+│       └── package.json              # Lambda dependencies
+├── infra/
+│   └── terraform/                    # Infrastructure as Code
+│       ├── main.tf                   # Main configuration
+│       ├── variables.tf              # Input variables
+│       ├── outputs.tf                # Output values
+│       ├── vpc.tf                    # VPC and networking
+│       ├── sg.tf                     # Security groups
+│       ├── iam.tf                    # IAM roles and policies
+│       └── lambda.tf                 # Lambda function
+├── prisma/
+│   ├── schema.prisma                 # Database schema
+│   └── migrations/                   # Database migrations
+├── scripts/
+│   └── validate-standards.sh         # Quality gates
+├── deploy-aws.sh                     # Deployment script (Unix)
+├── deploy-aws.bat                    # Deployment script (Windows)
+└── README.md                         # This file
+```
+
+## Deployment
+
+### Automated Deployment
+
+The easiest way to deploy Cloud Terraria is using the provided deployment scripts:
+
+**Windows:**
+```cmd
+deploy-aws.bat
+```
+
+**Unix/Linux/macOS:**
+```bash
+chmod +x deploy-aws.sh
+./deploy-aws.sh
+```
+
+These scripts will:
+1. Validate prerequisites (Terraform, AWS CLI)
+2. Initialize and deploy Terraform infrastructure
+3. Update environment variables automatically
+4. Provide next steps for development
+
+### Manual Deployment
+
+If you prefer manual deployment:
 
 ```bash
-pnpm create t3-app@latest terrakit
-cd terrakit
-pnpm i
-pnpm add @prisma/client next-auth @next-auth/prisma-adapter @aws-sdk/client-lambda zod
-pnpm add -D prisma
-npx prisma init
-```
-
-2) Copy `.env.example` to `.env` and fill values (see below).
-
-3) Migrate database
-
-```bash
-npx prisma migrate dev -n init
-```
-
-4) Provision infrastructure
-
-```bash
+# 1. Deploy infrastructure
 cd infra/terraform
 terraform init
-terraform apply -var="ami_id=ami-xxxxxxxx" -var="open_ssh=false"
-```
+terraform plan
+terraform apply
 
-Copy `lambda_name` output into `.env` as `AWS_LAMBDA_FUNCTION_NAME`.
+# 2. Update environment variables
+# Copy lambda_function_name from Terraform output to .env
 
-5) Run app
+# 3. Set up database
+npx prisma migrate dev
 
-```bash
+# 4. Start application
 pnpm dev
 ```
 
@@ -129,134 +219,132 @@ pnpm dev
 Create `.env` from the template below:
 
 ```bash
-# NextAuth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=dev_super_secret
+## Configuration
 
-# Providers
-GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=xxx
-LINE_CLIENT_ID=xxxxx
-LINE_CLIENT_SECRET=xxxxx
-EMAIL_SERVER=smtp://user:pass@smtp.yourhost.com:587
-EMAIL_FROM=noreply@example.com
+### Environment Variables
 
-# AWS (server-side SDK invoke Lambda)
-AWS_REGION=ap-southeast-1
-AWS_ACCESS_KEY_ID=xxx
-AWS_SECRET_ACCESS_KEY=xxx
-AWS_SESSION_TOKEN=xxx
-
-# Terraform output -> copy here after apply
-AWS_LAMBDA_FUNCTION_NAME=terraria-ec2-manager
-
-# App policy
-MAX_SERVERS_PER_USER=1
-
-# Database
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
-```
-
-## Database and Prisma
-
-`prisma/schema.prisma` (key models only):
-
-```prisma
-datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
-generator client { provider = "prisma-client-js" }
-
-model User {
-  id        String           @id @default(cuid())
-  email     String?          @unique
-  name      String?
-  createdAt DateTime         @default(now())
-  accounts  Account[]
-  sessions  Session[]
-  servers   ServerInstance[]
-}
-
-model ServerInstance {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  instanceId String?  @unique
-  state      String   @default("PENDING")
-  publicIp   String?
-  port       Int      @default(7777)
-  region     String   @default("ap-southeast-1")
-  worldName  String   @default("MyWorld")
-  version    String   @default("latest")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-  @@unique([identifier, token])
-}
-```
-
-Run migrations:
+Create a `.env` file in the project root with the following variables:
 
 ```bash
-npx prisma migrate dev -n init
+# Application Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here
+
+# Database Configuration
+DATABASE_URL="file:./dev.db"  # SQLite for development
+# DATABASE_URL="postgresql://user:password@localhost:5432/cloud_terraria"  # PostgreSQL for production
+
+# Discord OAuth (Required)
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
+
+# AWS Configuration (Required for production)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_LAMBDA_FUNCTION_NAME=cloud-terraria-ec2-manager
+
+# Optional: Additional OAuth Providers
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-## Auth Setup
+### Discord OAuth Setup
 
-`src/pages/api/auth/[...nextauth].ts`:
+1. Visit the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a new application
+3. Go to OAuth2 settings
+4. Add redirect URI: `http://localhost:3000/api/auth/callback/discord`
+5. Copy Client ID and Client Secret to your `.env` file
 
-```ts
-import NextAuth, { type NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import LineProvider from "next-auth/providers/line";
-import EmailProvider from "next-auth/providers/email";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/server/db";
+### AWS Configuration
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET! }),
-    LineProvider({ clientId: process.env.LINE_CLIENT_ID!, clientSecret: process.env.LINE_CLIENT_SECRET! }),
-    EmailProvider({ server: process.env.EMAIL_SERVER!, from: process.env.EMAIL_FROM! }),
-  ],
-  callbacks: {
-    session: async ({ session, user }) => {
-      if (session.user) (session.user as any).id = user.id;
-      return session;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-};
-export default NextAuth(authOptions);
+Ensure your AWS credentials have the following permissions:
+- EC2 full access (for server management)
+- Lambda invoke permissions
+- IAM role creation (for Terraform deployment)
+- VPC and Security Group management
+```
+
+## Development
+
+### Database Setup
+
+The project uses Prisma as the ORM with support for both SQLite (development) and PostgreSQL (production).
+
+**Initialize the database:**
+```bash
+npx prisma migrate dev
+```
+
+**Reset the database (if needed):**
+```bash
+npx prisma migrate reset
+```
+
+**View the database:**
+```bash
+npx prisma studio
+```
+
+### Key Database Models
+
+- **User**: Stores user authentication data
+- **ServerInstance**: Manages Terraria server instances
+- **Account/Session**: NextAuth.js authentication tables
+
+### Development Commands
+
+```bash
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+
+# Run linting
+pnpm lint
+
+# Run type checking
+pnpm type-check
+
+# Validate project standards
+./scripts/validate-standards.sh
+```
+
+## API Reference
+
+### tRPC Endpoints
+
+The application uses tRPC for type-safe API communication. Key endpoints include:
+
+#### Server Management
+- `server.create` - Create a new Terraria server instance
+- `server.getAll` - Retrieve all user's server instances
+- `server.getById` - Get specific server details
+- `server.start` - Start a stopped server
+- `server.stop` - Stop a running server
+- `server.terminate` - Permanently delete a server
+
+#### Authentication
+- All endpoints require user authentication via NextAuth.js
+- Session-based protection ensures users can only manage their own servers
+
+### Example Usage
+
+```typescript
+// Create a new server
+const server = await api.server.create.mutate({
+  worldName: "My Adventure World",
+  version: "latest",
+  port: 7777
+});
+
+// Get all user servers
+const servers = await api.server.getAll.useQuery();
 ```
 
 `src/server/auth.ts`:
@@ -374,40 +462,60 @@ export const serverRouter = createTRPCRouter({
 });
 ```
 
-## Terraform Infrastructure
+## Infrastructure
 
-Files are in `infra/terraform`.
+### AWS Architecture
 
-`versions.tf`:
+The infrastructure is deployed using Terraform and consists of:
 
+- **VPC and Networking**: Isolated network environment with public subnets
+- **Security Groups**: Firewall rules allowing Terraria traffic on port 7777
+- **IAM Roles**: Permissions for Lambda to manage EC2 instances
+- **Lambda Function**: Serverless EC2 lifecycle management
+- **EC2 Instances**: On-demand Ubuntu hosts running Dockerized Terraria servers
+
+### Infrastructure Components
+
+**Network Setup:**
 ```hcl
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.55" }
-    archive = { source = "hashicorp/archive", version = "~> 2.5" }
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+}
+
+resource "aws_security_group" "terraria" {
+  ingress {
+    from_port   = 7777
+    to_port     = 7777
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
-provider "aws" { region = var.region }
 ```
 
-`variables.tf`:
+**Lambda Function:**
+```hcl
+resource "aws_lambda_function" "ec2_manager" {
+  filename         = "lambda-deployment.zip"
+  function_name    = "cloud-terraria-ec2-manager"
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "index.handler"
+  runtime         = "nodejs20.x"
+  timeout         = 60
+}
+```
+
+### Deployment Configuration
+
+Create `infra/terraform/terraform.tfvars`:
 
 ```hcl
-variable "project"     { type = string  default = "terrakit" }
-variable "region"      { type = string  default = "ap-southeast-1" }
-variable "vpc_cidr"    { type = string  default = "10.0.0.0/16" }
-variable "public_cidr" { type = string  default = "10.0.1.0/24" }
-
-variable "allow_terraria_cidr" { type = string  default = "0.0.0.0/0" }
-variable "open_ssh"            { type = bool    default = false }
-
-variable "ami_id"        { type = string }
-variable "instance_type" { type = string  default = "t3.small" }
-variable "key_name"      { type = string  default = "" }
-
-variable "lambda_name"    { type = string  default = "terraria-ec2-manager" }
-variable "lambda_timeout" { type = number  default = 60 }
+project               = "cloud-terraria"
+region               = "us-east-1"
+instance_type        = "t3.small"
+allow_terraria_cidr  = "0.0.0.0/0"
+open_ssh            = false
 ```
 
 `vpc.tf`:
@@ -679,29 +787,170 @@ runcmd:
 }
 ```
 
-## Security and Cost Controls
+## Security and Cost Management
 
-- Security Group exposes TCP 7777. Keep SSH closed unless necessary.
-- Quota via `MAX_SERVERS_PER_USER`. Enforce per plan.
-- Add an auto-stop/auto-terminate Lambda (cron) for idle servers.
-- Store world save on EBS or sync to S3 to persist across re-creates.
-- Prefer private subnets and NAT in production; public subnet is acceptable for MVP.
+### Security Controls
+- **Network Isolation**: Dedicated VPC with controlled ingress/egress
+- **Port Management**: Only TCP 7777 exposed for game traffic
+- **SSH Access**: Disabled by default, enable only when necessary
+- **Authentication**: Discord OAuth with NextAuth.js session management
+- **Resource Tagging**: All resources tagged for cost tracking and governance
+
+### Cost Controls
+- **User Quotas**: Configurable `MAX_SERVERS_PER_USER` limits
+- **Instance Types**: t3.micro for cost optimization
+- **Auto-Cleanup**: Implement auto-stop/terminate for idle servers
+- **Storage**: Use EBS GP3 for cost-effective persistent storage
+- **Monitoring**: CloudWatch billing alerts and usage tracking
+
+### Best Practices
+- Store world saves on EBS or sync to S3 for persistence
+- Use private subnets with NAT Gateway in production
+- Implement server TTL and automatic cleanup jobs
+- Regular security group audits and access reviews
 
 ## Troubleshooting
 
-- Unknown or error state: check Lambda CloudWatch logs and EC2 console.
-- No public IP: ensure subnet is public and `map_public_ip_on_launch = true`.
-- Cannot connect to 7777: verify Security Group ingress and local firewall.
-- Auth callback mismatch: confirm `NEXTAUTH_URL` and provider console redirect URIs.
-- Prisma errors: verify `DATABASE_URL`, rerun `npx prisma migrate dev`.
+### Common Issues
+
+#### Server Management
+```bash
+# Check server status
+curl -X POST https://your-api.com/api/servers/status -d '{"instanceId":"i-1234567890abcdef0"}'
+
+# View CloudWatch logs
+aws logs tail /aws/lambda/terraria-ec2-manager --follow
+```
+
+#### Connection Problems
+- **No Public IP**: Verify subnet configuration and `map_public_ip_on_launch = true`
+- **Port 7777 Blocked**: Check Security Group ingress rules and local firewall
+- **Timeout Issues**: Confirm instance is running and game server is started
+
+#### Authentication Errors
+- **Callback Mismatch**: Verify `NEXTAUTH_URL` matches provider redirect URIs
+- **Session Issues**: Clear browser cookies and check environment variables
+- **Provider Configuration**: Confirm Discord application settings
+
+#### Database Problems
+- **Migration Errors**: Run `npx prisma migrate dev` to sync schema
+- **Connection Issues**: Verify `DATABASE_URL` format and accessibility
+- **Data Corruption**: Use `npx prisma db push --force-reset` for development
+
+### Debug Commands
+```bash
+# Check AWS credentials
+aws sts get-caller-identity
+
+# Validate Terraform configuration
+terraform validate
+terraform plan
+
+# Test Lambda function locally
+aws lambda invoke --function-name terraria-ec2-manager --payload '{"action":"STATUS"}' response.json
+
+# Check Next.js build
+npm run build
+npm run start
+```
+
+### Monitoring and Logs
+- **Application Logs**: Check Vercel deployment logs
+- **Lambda Logs**: CloudWatch `/aws/lambda/terraria-ec2-manager`
+- **Infrastructure**: Terraform state and AWS CloudTrail
+- **Database**: Prisma query logs and performance metrics
+
+## Contributing
+
+We welcome contributions to Cloud Terraria! Please follow these guidelines:
+
+### Development Process
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** using conventional commits (`git commit -m 'feat: add amazing feature'`)
+4. **Push** to your branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Code Standards
+- **Formatting**: Use Prettier and ESLint configurations
+- **Testing**: Add tests for new features
+- **Documentation**: Update README and inline comments
+- **Commits**: Follow [Conventional Commits](https://www.conventionalcommits.org/)
+
+### Commit Types
+- `feat`: New features
+- `fix`: Bug fixes
+- `docs`: Documentation changes
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Build process or auxiliary tool changes
+
+### Review Process
+- All PRs require review from maintainers
+- CI checks must pass (linting, testing, build)
+- Documentation updates are required for API changes
+- Breaking changes require major version bump
+
+### Getting Help
+- **Issues**: Report bugs and request features via GitHub Issues
+- **Discussions**: Use GitHub Discussions for questions and ideas
+- **Security**: Report security issues privately to maintainers
 
 ## Roadmap
 
-- Payment gating per user server runtime.
-- S3 backups and automatic restore.
-- API Gateway in front of Lambda with auth header checks.
-- Auto-stop and TTL cleanup jobs.
+### Phase 1: Core Stability
+- [ ] Enhanced error handling and retry logic
+- [ ] Comprehensive testing suite
+- [ ] Performance optimization
+- [ ] Security audit and hardening
+
+### Phase 2: Advanced Features
+- [ ] Payment integration and billing management
+- [ ] Multi-region deployment support
+- [ ] Advanced server configurations
+- [ ] Real-time server monitoring dashboard
+
+### Phase 3: Enterprise Features
+- [ ] Team management and sharing
+- [ ] Advanced backup and restore
+- [ ] Custom mod support
+- [ ] API rate limiting and quotas
+
+### Phase 4: Platform Integration
+- [ ] Mobile app companion
+- [ ] Discord bot integration
+- [ ] Community features and server discovery
+- [ ] Advanced analytics and reporting
+
+## Support
+
+### Documentation
+- [Quick Start Guide](QUICK_START.md)
+- [AWS Setup Guide](AWS_SETUP_GUIDE.md)
+- [Visual Guide](VISUAL_GUIDE.md)
+- [Design System](DESIGN_SYSTEM.md)
+
+### Community
+- **GitHub Issues**: Bug reports and feature requests
+- **GitHub Discussions**: Community support and questions
+- **Discord**: Real-time community chat (coming soon)
+
+### Commercial Support
+For enterprise deployments and commercial support, please contact the maintainers.
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Third-Party Licenses
+- Next.js: MIT License
+- Prisma: Apache License 2.0
+- AWS SDK: Apache License 2.0
+- Discord OAuth: MIT License
+
+---
+
+**Cloud Terraria** - Self-hosted Terraria server management made simple.
+
+Built with ❤️ for the Terraria community.
