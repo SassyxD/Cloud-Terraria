@@ -1,21 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 import NextAuth from "next-auth";
 import { cache } from "react";
 import type { Session } from "next-auth";
+import type { NextRequest } from "next/server";
 
 import { authConfig } from "./config";
 
-// Provide a narrow-ish type for the NextAuth return shape using `unknown` casts to avoid
-// polluting the codebase with `any`. This gives us a typed `auth` function and `handlers`
-// that other modules can import without needing unsafe `any` casts.
+// NextAuth returns a handler object when called in the App Router scenario.
+// We call it once and export typed helpers for the rest of the app.
 const nextAuthResult = NextAuth(authConfig) as unknown as {
-	auth: () => Promise<Session | null>;
-	handlers: {
-		GET: (req: Request) => Promise<Response> | Response;
-		POST: (req: Request) => Promise<Response> | Response;
-	};
-	signIn: (...args: unknown[]) => unknown;
-	signOut: (...args: unknown[]) => unknown;
+  auth: () => Promise<Session | null>;
+  handlers: {
+    GET: (req: NextRequest) => Promise<Response> | Response;
+    POST: (req: NextRequest) => Promise<Response> | Response;
+  };
+  signIn: (...args: unknown[]) => unknown;
+  signOut: (...args: unknown[]) => unknown;
 };
 
 const { auth: uncachedAuth, handlers, signIn, signOut } = nextAuthResult;

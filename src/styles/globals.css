@@ -4,3 +4,127 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+/* Terraria-themed custom styles */
+body {
+  background-color: #0a1628;
+  color: #f3f4f6;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(74, 144, 226, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(155, 89, 182, 0.1) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a2537;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5fa3e8;
+}
+
+/* Pixel art style borders */
+.pixel-border {
+  border: 3px solid;
+  border-image: repeating-linear-gradient(
+    45deg,
+    #4a90e2,
+    #4a90e2 2px,
+    transparent 2px,
+    transparent 4px
+  ) 3;
+}
+
+/* Glow effects */
+.terraria-glow {
+  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3),
+              0 0 40px rgba(74, 144, 226, 0.1);
+}
+
+.terraria-glow-green {
+  box-shadow: 0 0 20px rgba(95, 211, 95, 0.3),
+              0 0 40px rgba(95, 211, 95, 0.1);
+}
+
+.terraria-glow-gold {
+  box-shadow: 0 0 20px rgba(244, 196, 48, 0.3),
+              0 0 40px rgba(244, 196, 48, 0.1);
+}
+
+/* Animated gradient background */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 20s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 144, 226, 0.1),
+    transparent
+  );
+  background-size: 1000px 100%;
+}
+
+/* Star effects for background */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.star {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* Smooth entrance animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.2s ease-out, zoom-in 0.2s ease-out;
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(74, 144, 226, 0.6);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
