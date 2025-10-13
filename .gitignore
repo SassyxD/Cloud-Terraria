@@ -50,9 +50,3 @@ yarn-error.log*
 
 # vscode settings (user-specific)
 .vscode/settings.json
-
-# git hooks (environment-specific)
-.git/hooks/pre-commit
-
-# validation scripts (if auto-generated)
-scripts/validate-standards.sh
