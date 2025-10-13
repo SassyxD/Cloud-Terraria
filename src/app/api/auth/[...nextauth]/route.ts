@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import NextAuth from "next-auth";
-import { authConfig } from "~/server/auth/config";
+import type { NextRequest } from "next/server";
+import * as authModule from "~/server/auth/index";
 
-const nextAuthHandler = NextAuth(authConfig as any);
-
-export async function GET(request: Request) {
-	return await (nextAuthHandler as any).GET?.(request) ?? new Response(null, { status: 404 });
+export async function GET(request: NextRequest) {
+	const h = authModule.handlers?.GET as unknown as ((req: Request) => Promise<Response> | Response) | undefined;
+	return (h?.(request as unknown as Request) as Promise<Response> | Response) ?? new Response(null, { status: 404 });
 }
 
-export async function POST(request: Request) {
-	return await (nextAuthHandler as any).POST?.(request) ?? new Response(null, { status: 404 });
+export async function POST(request: NextRequest) {
+	const h = authModule.handlers?.POST as unknown as ((req: Request) => Promise<Response> | Response) | undefined;
+	return (h?.(request as unknown as Request) as Promise<Response> | Response) ?? new Response(null, { status: 404 });
 }
