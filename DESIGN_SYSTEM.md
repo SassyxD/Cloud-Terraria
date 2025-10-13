@@ -1,6 +1,6 @@
 # Cloud Terraria - Frontend Design System
 
-## 🎨 Color Palette
+## Color Palette
 
 ### Primary Colors
 ```css
@@ -18,7 +18,7 @@
 --accent-orange: #ff8c42   /* Highlights */
 ```
 
-## 🎭 Component Variants
+## Component Variants
 
 ### Buttons
 
@@ -52,13 +52,13 @@
 ### Status Badges
 
 ```
-Running:  🟢 Green background (#5fd35f)
-Pending:  🟡 Yellow background (#f4c430)
-Stopped:  ⚫ Gray background (#6b7280)
-Error:    🔴 Red background (#e74c3c)
+Running:  Green background (#5fd35f)
+Pending:  Yellow background (#f4c430)
+Stopped:  Gray background (#6b7280)
+Error:    Red background (#e74c3c)
 ```
 
-## 📐 Layout Structure
+## Layout Structure
 
 ### Header
 - Fixed top navigation
@@ -77,7 +77,7 @@ Error:    🔴 Red background (#e74c3c)
 - 3 columns on desktop (lg:)
 - Gap: 6 (1.5rem)
 
-## ✨ Animations
+## Animations
 
 ### Entrance Animations
 ```css
@@ -95,7 +95,7 @@ Error:    🔴 Red background (#e74c3c)
 - **Active**: Slight scale down
 - **Focus**: Ring with accent color
 
-## 📱 Responsive Breakpoints
+## Responsive Breakpoints
 
 ```
 Mobile:   < 640px   (1 column layout)
@@ -103,7 +103,7 @@ Tablet:   640-1024px (2 column layout)
 Desktop:  > 1024px   (3 column layout)
 ```
 
-## 🎯 Typography
+## Typography
 
 ### Headings
 - Main Title: 4xl-5xl, gradient text
@@ -115,7 +115,7 @@ Desktop:  > 1024px   (3 column layout)
 - Geist Sans (primary)
 - Monospace for code/IDs
 
-## 🌟 Special Effects
+## Special Effects
 
 ### Glow Classes
 ```css
@@ -135,7 +135,7 @@ Desktop:  > 1024px   (3 column layout)
 - Width: 12px
 - Rounded corners
 
-## 🎮 Theme Inspiration
+## Theme Inspiration
 
 The design draws inspiration from Terraria's aesthetic:
 - **Dark Background**: Like the night sky in Terraria
@@ -144,7 +144,7 @@ The design draws inspiration from Terraria's aesthetic:
 - **Glow Effects**: Similar to item glow and lighting effects
 - **Gradient Text**: Like legendary/mythical item names
 
-## 🔧 Usage Examples
+## Usage Examples
 
 ### Creating a Glowing Button
 ```tsx
@@ -175,7 +175,7 @@ The design draws inspiration from Terraria's aesthetic:
 ))}
 ```
 
-## 🎨 Gradient Combinations
+## Gradient Combinations
 
 ### Primary Gradient (Blue → Purple)
 ```css
@@ -192,7 +192,7 @@ from-[#5fd35f] to-[#4a90e2]
 from-[#4a90e2] via-[#9b59b6] to-[#f4c430]
 ```
 
-## 🌈 Accessibility
+## Accessibility
 
 - Contrast ratios meet WCAG AA standards
 - Focus indicators on all interactive elements
@@ -200,14 +200,14 @@ from-[#4a90e2] via-[#9b59b6] to-[#f4c430]
 - Keyboard navigation support
 - Screen reader friendly labels
 
-## 📦 Component Library
+## Component Library
 
 All reusable components are in `src/components/`:
 - `CreateServerButton.tsx` - Server creation modal
 - `ServerCard.tsx` - Server display card
 - `Loading.tsx` - Loading states and spinners
 
-## 🎬 Animation Timing
+## Animation Timing
 
 - Quick transitions: 0.2s
 - Standard transitions: 0.3s

@@ -1,6 +1,6 @@
-# 🎨 Visual Design Preview - Cloud Terraria
+# Visual Design Preview - Cloud Terraria
 
-## 🖼️ Page Layouts
+## Page Layouts
 
 ### Landing Page (Not Authenticated)
 ```
@@ -9,15 +9,14 @@
 │     Server Management                                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│                   ⭐ ⭐ ⭐ Stars Background ⭐ ⭐ ⭐          │
+│                       Stars Background                      │
 │                                                              │
 │           Cloud Terraria (Gradient Text)                    │
 │     Deploy and manage your Terraria servers in the          │
-│            cloud with just a few clicks! ⚡                  │
+│            cloud with just a few clicks!                    │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │     🚀       │  │      ⚙️       │  │      ☁️       │      │
-│  │ Quick Deploy │  │     Easy      │  │    Cloud     │      │
+│  │  Quick Deploy│  │     Easy      │  │    Cloud     │      │
 │  │              │  │  Management   │  │   Powered    │      │
 │  │   Launch in  │  │   Intuitive   │  │   Reliable   │      │
 │  │   minutes    │  │   dashboard   │  │     AWS      │      │
@@ -34,24 +33,24 @@
 │  🌍 Cloud Terraria    👤 User Avatar    [Sign Out]         │
 │     Server Management     John Doe                          │
 ├─────────────────────────────────────────────────────────────┤
-│                   ⭐ ⭐ ⭐ Stars Background ⭐ ⭐ ⭐          │
+│                       Stars Background                      │
 │                                                              │
-│           Welcome, Adventurer! ⚔️                           │
+│           Welcome, Adventurer!                              │
 │     Manage your Terraria servers with ease.                 │
 │                                                              │
-│              [⚡ Create New Server] (Green Glow)            │
+│              [Create New Server] (Green Glow)               │
 │                                                              │
 │  Your Servers                         Total: 3              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ 🌍 MyWorld  │  │ 🌍 PvP Arena│  │ 🌍 Builder   │         │
+│  │   MyWorld   │  │  PvP Arena  │  │   Builder   │         │
 │  │ v1.4.4      │  │ vLatest     │  │ vLatest      │         │
-│  │ 🟢 Running  │  │ 🟡 Pending  │  │ ⚫ Stopped    │         │
+│  │  Running    │  │  Pending    │  │  Stopped     │         │
 │  │             │  │             │  │              │         │
 │  │ Port: 7777  │  │ Port: 7778  │  │ Port: 7779   │         │
 │  │ ID: i-abc...│  │ ID: i-def...│  │ ID: i-ghi... │         │
 │  │ 2024-10-13  │  │ 2024-10-13  │  │ 2024-10-12   │         │
 │  │             │  │             │  │              │         │
-│  │ [Connect] ⚙️│  │ [Connect] ⚙️│  │ [Connect] ⚙️ │         │
+│  │ [Connect] ⚙ │  │ [Connect] ⚙ │  │ [Connect] ⚙  │         │
 │  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -79,7 +78,7 @@
 │  └──────────────────────────────────────┘ │
 │                                            │
 │  ┌────────────┐  ┌────────────────────┐  │
-│  │  Cancel    │  │  Create Server  ✨ │  │
+│  │  Cancel    │  │  Create Server     │  │
 │  └────────────┘  └────────────────────┘  │
 │                                            │
 └────────────────────────────────────────────┘
@@ -87,7 +86,7 @@
 
 ---
 
-## 🎨 Color Scheme Visualization
+## Color Scheme Visualization
 
 ### Primary Palette
 ```
@@ -118,7 +117,7 @@ Card Accent:       [#4a90e2 → #9b59b6 → #f4c430]
 
 ---
 
-## 🎭 Animation States
+## Animation States
 
 ### Button Hover States
 ```
@@ -129,7 +128,7 @@ Default State:
 
 Hover State:
 ┌────────────────────┐
-│  Create Server  ✨ │  ← Glow effect
+│  Create Server     │  ← Glow effect
 └────────────────────┘  ← Shimmer animation
 
 Loading State:
@@ -162,7 +161,7 @@ Frame 5:  ✦ (dim)
 
 ---
 
-## 📱 Responsive Layouts
+## Responsive Layouts
 
 ### Mobile (< 640px)
 ```
@@ -231,18 +230,18 @@ Frame 5:  ✦ (dim)
 
 ---
 
-## 🎯 Status Indicators
+## Status Indicators
 
 ```
-🟢 RUNNING   Green (#5fd35f)    Active server, ready to connect
-🟡 PENDING   Gold (#f4c430)     Deploying, please wait
-⚫ STOPPED   Gray (#6b7280)     Server is offline
-🔴 ERROR     Red (#e74c3c)      Something went wrong
+RUNNING   Green (#5fd35f)    Active server, ready to connect
+PENDING   Gold (#f4c430)     Deploying, please wait
+STOPPED   Gray (#6b7280)     Server is offline
+ERROR     Red (#e74c3c)      Something went wrong
 ```
 
 ---
 
-## ✨ Special Effects
+## Special Effects
 
 ### Glow Effect Visualization
 ```
@@ -255,7 +254,7 @@ With Glow:
     ╭─────╮
   ╭─────────╮
 ┌──────────────┐
-│   Button  ✨ │
+│   Button     │
 └──────────────┘
   ╰─────────╯
     ╰─────╯
@@ -274,7 +273,7 @@ Time 4s:   ░░░▓░░░░░░
 
 ---
 
-## 🎨 Typography Hierarchy
+## Typography Hierarchy
 
 ```
 ╔═══════════════════════════════════════╗
@@ -289,7 +288,7 @@ Time 4s:   ░░░▓░░░░░░
 
 ---
 
-## 🌟 Interactive Elements
+## Interactive Elements
 
 ### Form Inputs
 ```
@@ -319,16 +318,16 @@ Focused:
 
 ---
 
-## 🎮 Theme Consistency
+## Theme Consistency
 
 Every element follows the Terraria theme:
-- ✨ Magical glow effects (like enchanted items)
-- 🌌 Dark space background (night sky)
-- ⭐ Twinkling stars (environmental effect)
-- 🎨 Vibrant gradients (legendary item names)
-- 🌈 Color-coded states (buff/debuff indicators)
-- 💫 Smooth animations (fluid gameplay)
+- Magical glow effects (like enchanted items)
+- Dark space background (night sky)
+- Twinkling stars (environmental effect)
+- Vibrant gradients (legendary item names)
+- Color-coded states (buff/debuff indicators)
+- Smooth animations (fluid gameplay)
 
 ---
 
-**This visual guide helps you understand the design system at a glance!** 🎨✨
+**This visual guide helps you understand the design system at a glance!**

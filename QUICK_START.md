@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - Cloud Terraria
+# Quick Start Guide - Cloud Terraria
 
 ## Getting Started in 3 Steps
 
@@ -37,11 +37,11 @@ pnpm db:push
 pnpm dev
 ```
 
-Visit http://localhost:3000 to see your beautiful new Terraria-themed frontend! 🎮
+Visit http://localhost:3000 to see your beautiful new Terraria-themed frontend!
 
 ---
 
-## 🎨 First Time Setup
+## First Time Setup
 
 ### Sign In
 1. Click "Sign In" in the top right
@@ -55,21 +55,21 @@ Visit http://localhost:3000 to see your beautiful new Terraria-themed frontend! 
    - **Version**: Select from dropdown (default: latest)
    - **Port**: Leave default (7777) or customize
 3. Click "Create Server"
-4. Wait for deployment (status will show as 🟡 Pending)
+4. Wait for deployment (status will show as Pending)
 
 ### View Your Servers
 - All servers display in a grid
 - Each card shows:
-  - 🌍 World name
-  - 📦 Version
-  - 🔌 Port number
-  - 🆔 Instance ID (when deployed)
-  - 📅 Creation date
-  - 🟢 Status indicator
+  - World name
+  - Version
+  - Port number
+  - Instance ID (when deployed)
+  - Creation date
+  - Status indicator
 
 ---
 
-## 🎮 Using the Interface
+## Using the Interface
 
 ### Header Navigation
 - **Logo**: Returns to home
@@ -83,13 +83,13 @@ Visit http://localhost:3000 to see your beautiful new Terraria-themed frontend! 
 - **Sort**: (Coming soon) Order by date/name
 
 ### Server Actions
-- **Connect**: Join server when running (🟢)
+- **Connect**: Join server when running
 - **Settings**: Configure server options
 - **More options**: (Future) Start/stop/delete
 
 ---
 
-## 🔧 Development Commands
+## Development Commands
 
 ```bash
 # Development
@@ -112,7 +112,7 @@ pnpm format:write     # Format with Prettier
 
 ---
 
-## 🎨 Customization Tips
+## Customization Tips
 
 ### Change Colors
 Edit `src/styles/globals.css`:
@@ -190,7 +190,7 @@ pnpm db:push --force-reset
 
 ---
 
-## 🌟 Pro Tips
+## Pro Tips
 
 ### Performance
 - Use server components when possible
@@ -219,7 +219,7 @@ pnpm db:push --force-reset
 
 ---
 
-## 🎯 What's Next?
+## What's Next?
 
 Now that your frontend is set up, you can:
 
@@ -228,7 +228,7 @@ Now that your frontend is set up, you can:
 3. **Deploy** - Push to Vercel or your hosting
 4. **Customize** - Make it your own!
 
-Happy coding! 🚀✨
+Happy coding!
 
 ---
 

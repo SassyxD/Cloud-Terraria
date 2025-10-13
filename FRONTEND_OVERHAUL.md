@@ -37,10 +37,10 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
 #### 2. **ServerCard** (`src/components/ServerCard.tsx`)
 - Displays server information in a card layout
 - State indicators with color coding:
-  - 🟢 Running (Green)
-  - 🟡 Pending (Yellow)
-  - ⚫ Stopped (Gray)
-  - 🔴 Error (Red)
+  - Running (Green)
+  - Pending (Yellow)
+  - Stopped (Gray)
+  - Error (Red)
 - Server details: World name, version, port, instance ID, creation date
 - Action buttons: Connect, Settings
 - Hover effects with gradient accent line
