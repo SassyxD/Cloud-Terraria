@@ -56,9 +56,9 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
 - **Landing Page** (Not Authenticated)
   - Hero section with gradient title
   - Feature cards highlighting:
-    - 🚀 Quick Deploy
-    - ⚙️ Easy Management
-    - ☁️ Cloud Powered
+    - Quick Deploy
+    - Easy Management
+    - Cloud Powered
   - Call-to-action button
   
 - **Dashboard** (Authenticated)
@@ -68,11 +68,11 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
   - Empty state for no servers
   - Server count indicator
 
-### 🎭 Layout Updates (`src/app/layout.tsx`)
+### Layout Updates (`src/app/layout.tsx`)
 - Updated metadata (title, description)
 - Added antialiased class for better text rendering
 
-### 🎨 Styling (`src/styles/globals.css`)
+### Styling (`src/styles/globals.css`)
 - Custom scrollbar with Terraria colors
 - Animation keyframes:
   - `twinkle` - Star animations
@@ -88,7 +88,7 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
   - `.star` - Twinkling effect
   - `.animate-in` - Entrance animation
 
-### 🔌 API Integration
+### API Integration
 
 #### Server Router (`src/server/api/routers/server.ts`)
 - Added `getAll` query to fetch user's servers
@@ -99,7 +99,7 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
 
 ## Features
 
-### ✅ Implemented
+### Implemented
 - Responsive design (mobile, tablet, desktop)
 - Dark theme with Terraria aesthetics
 - Server management dashboard
@@ -109,7 +109,7 @@ Complete redesign of the Cloud Terraria frontend with a Terraria-inspired theme 
 - Animated backgrounds and effects
 - Loading states and error handling
 
-### 🎯 User Experience
+### User Experience
 - Friendly, gaming-themed interface
 - Clear visual feedback
 - Smooth transitions and animations
