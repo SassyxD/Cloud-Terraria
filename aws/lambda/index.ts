@@ -9,6 +9,7 @@ const INSTANCE_TYPE = process.env.INSTANCE_TYPE ?? "t3.small";
 const SECURITY_GROUP_ID = process.env.SECURITY_GROUP_ID;
 const SUBNET_ID = process.env.SUBNET_ID;
 const KEY_NAME = process.env.KEY_NAME || "";
+const INSTANCE_PROFILE = process.env.INSTANCE_PROFILE;
 
 const ec2 = new EC2Client({ region: REGION });
 
@@ -34,13 +35,14 @@ runcmd:
 
       const run = await ec2.send(new RunInstancesCommand({
         ImageId: AMI_ID,
-        InstanceType: INSTANCE_TYPE,
+        InstanceType: INSTANCE_TYPE as any,
         MinCount: 1,
         MaxCount: 1,
         KeyName: KEY_NAME || undefined,
-        SecurityGroupIds: [SECURITY_GROUP_ID],
+        SecurityGroupIds: [SECURITY_GROUP_ID!],
         SubnetId: SUBNET_ID,
         UserData: userData,
+        IamInstanceProfile: INSTANCE_PROFILE ? { Name: INSTANCE_PROFILE } : undefined,
         TagSpecifications: [{
           ResourceType: "instance",
           Tags: [
