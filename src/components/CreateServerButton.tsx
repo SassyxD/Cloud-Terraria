@@ -27,7 +27,9 @@ export function CreateServerButton() {
         className="group relative px-8 py-4 rounded-xl bg-gradient-to-r from-[#5fd35f] to-[#4a90e2] hover:from-[#6fe46f] hover:to-[#5fa3e8] transition-all font-bold text-lg shadow-lg terraria-glow-green overflow-hidden"
       >
         <span className="relative z-10 flex items-center gap-2">
-          <span className="text-2xl">⚡</span>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
           Create New Server
         </span>
         <div className="absolute inset-0 shimmer opacity-50" />

@@ -43,7 +43,9 @@ export function PageLoader() {
         <div className="relative">
           <div className="w-20 h-20 border-4 border-[#4a90e2]/30 border-t-[#4a90e2] rounded-full animate-spin mx-auto" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-3xl">🌍</span>
+            <svg className="w-8 h-8 text-[#4a90e2]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
           </div>
         </div>
         <div className="space-y-2">

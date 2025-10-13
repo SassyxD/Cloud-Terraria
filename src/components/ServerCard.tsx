@@ -30,17 +30,28 @@ export function ServerCard({ server }: ServerCardProps) {
   };
 
   const getStateIcon = (state: string) => {
+    const baseClasses = "w-3 h-3";
     switch (state.toUpperCase()) {
       case "RUNNING":
-        return "🟢";
+        return (
+          <div className={`${baseClasses} rounded-full bg-[#5fd35f]`} />
+        );
       case "PENDING":
-        return "🟡";
+        return (
+          <div className={`${baseClasses} rounded-full bg-[#f4c430]`} />
+        );
       case "STOPPED":
-        return "⚫";
+        return (
+          <div className={`${baseClasses} rounded-full bg-gray-500`} />
+        );
       case "ERROR":
-        return "🔴";
+        return (
+          <div className={`${baseClasses} rounded-full bg-[#e74c3c]`} />
+        );
       default:
-        return "⚪";
+        return (
+          <div className={`${baseClasses} rounded-full bg-gray-600`} />
+        );
     }
   };
 
@@ -54,14 +65,17 @@ export function ServerCard({ server }: ServerCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h4 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-              🌍 {server.worldName}
+              <svg className="w-5 h-5 text-[#4a90e2]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              {server.worldName}
             </h4>
             <p className="text-sm text-gray-400">
               Version {server.version}
             </p>
           </div>
-          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getStateColor(server.state)}`}>
-            <span>{getStateIcon(server.state)}</span>
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 ${getStateColor(server.state)}`}>
+            {getStateIcon(server.state)}
             {server.state}
           </div>
         </div>
@@ -103,7 +117,10 @@ export function ServerCard({ server }: ServerCardProps) {
           <button
             className="px-4 py-2 rounded-lg bg-[#2a3548] hover:bg-[#e74c3c]/20 hover:border-[#e74c3c] transition-colors text-sm font-medium border border-[#4a90e2]/30"
           >
-            ⚙️
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
           </button>
         </div>
       </div>
