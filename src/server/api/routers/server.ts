@@ -9,6 +9,15 @@ import { callLambda } from "~/server/aws/lambdaClient";
 import type { LambdaResponse } from "~/server/aws/lambdaClient";
 
 export const serverRouter = createTRPCRouter({
+  getAll: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.session.user.id;
+      return await ctx.db.serverInstance.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+      });
+    }),
+
   create: protectedProcedure
     .input(z.object({
       worldName: z.string().default("MyWorld"),
