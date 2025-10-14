@@ -31,3 +31,28 @@ resource "aws_security_group" "terraria" {
 
   tags = { Name = "${var.project}-sg" }
 }
+
+# Lambda Security Group
+resource "aws_security_group" "lambda" {
+  name        = "${var.project}-lambda-sg"
+  description = "Security group for Lambda function"
+  vpc_id      = aws_vpc.main.id
+
+  # Allow HTTPS outbound for AWS API calls
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow PostgreSQL outbound to RDS
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  tags = { Name = "${var.project}-lambda-sg" }
+}

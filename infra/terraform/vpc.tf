@@ -18,9 +18,29 @@ resource "aws_subnet" "public_a" {
   tags = { Name = "${var.project}-public-a" }
 }
 
+# Private subnet for RDS
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_cidr
+  availability_zone = "${var.region}b"
+
+  tags = {
+    Name = "${var.project}-private-subnet"
+  }
+}
+
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   tags = { Name = "${var.project}-public-rt" }
+}
+
+# Route table for private subnet
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project}-private-rt"
+  }
 }
 
 resource "aws_route" "public_inet" {
@@ -32,4 +52,9 @@ resource "aws_route" "public_inet" {
 resource "aws_route_table_association" "public_a" {
   subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
 }

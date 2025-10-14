@@ -32,3 +32,20 @@ output "ubuntu_ami_id" {
   description = "ID of the Ubuntu AMI being used"
   value       = data.aws_ami.ubuntu.id
 }
+
+# RDS Outputs
+output "rds_endpoint" {
+  description = "RDS instance endpoint"
+  value       = var.enable_rds ? aws_db_instance.terraria[0].endpoint : null
+}
+
+output "rds_database_name" {
+  description = "RDS database name"
+  value       = var.enable_rds ? aws_db_instance.terraria[0].db_name : null
+}
+
+output "rds_connection_string" {
+  description = "PostgreSQL connection string for production (sensitive)"
+  value       = var.enable_rds ? "postgresql://${var.rds_username}:${var.rds_password}@${aws_db_instance.terraria[0].endpoint}:5432/${aws_db_instance.terraria[0].db_name}" : null
+  sensitive   = true
+}
