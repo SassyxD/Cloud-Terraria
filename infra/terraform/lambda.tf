@@ -31,6 +31,8 @@ resource "aws_lambda_function" "ec2_manager" {
   tags = {
     Name = "${var.project}-lambda-function"
   }
+
+  depends_on = [aws_iam_role_policy_attachment.logs, aws_iam_role_policy_attachment.ec2_attach]
 }
 
 # Lambda Function URL for external access
@@ -41,22 +43,9 @@ resource "aws_lambda_function_url" "ec2_manager" {
   cors {
     allow_credentials = false
     allow_origins     = ["*"]
-    allow_methods     = ["*"]
-    allow_headers     = ["date", "keep-alive"]
+    allow_methods     = ["POST", "OPTIONS"]
+    allow_headers     = ["date", "keep-alive", "content-type"]
     expose_headers    = ["date", "keep-alive"]
     max_age          = 86400
-  }
-}
-
-  depends_on = [aws_iam_role_policy_attachment.logs, aws_iam_role_policy_attachment.ec2_attach]
-}
-
-# (ออปชัน) เปิด Function URL เพื่อยิงผ่าน HTTPS (ถ้าไม่อยากใช้ SDK)
-resource "aws_lambda_function_url" "public" {
-  function_name      = aws_lambda_function.ec2_manager.function_name
-  authorization_type = "NONE"
-  cors {
-    allow_origins = ["*"]
-    allow_methods = ["POST", "OPTIONS"]
   }
 }

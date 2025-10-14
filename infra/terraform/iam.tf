@@ -86,16 +86,3 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.project}-ec2-profile"
   role = aws_iam_role.ec2_role.name
 }
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_policy" "ec2_access" {
-  name   = "${var.project}-lambda-ec2"
-  policy = data.aws_iam_policy_document.ec2_access.json
-}
-
-resource "aws_iam_role_policy_attachment" "ec2_attach" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.ec2_access.arn
-}
