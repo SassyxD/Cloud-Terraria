@@ -50,3 +50,5 @@ yarn-error.log*
 
 # vscode settings (user-specific)
 .vscode/settings.json
+
+infra/terraform/terraform.exe
