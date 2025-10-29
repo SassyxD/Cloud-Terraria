@@ -3,6 +3,8 @@ import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 export type LambdaResponse = {
   ok: boolean;
   instanceId?: string;
+  state?: string;
+  publicIp?: string;
   error?: string;
   [key: string]: unknown;
 };
@@ -31,6 +33,8 @@ export async function callLambda(payload: unknown): Promise<LambdaResponse | nul
     const out: LambdaResponse = {
       ok: Boolean((parsed as any).ok),
       instanceId: typeof (parsed as any).instanceId === "string" ? (parsed as any).instanceId : undefined,
+      state: typeof (parsed as any).state === "string" ? (parsed as any).state : undefined,
+      publicIp: typeof (parsed as any).publicIp === "string" ? (parsed as any).publicIp : undefined,
       error: typeof (parsed as any).error === "string" ? (parsed as any).error : undefined,
       ...parsed,
     };
@@ -38,4 +42,10 @@ export async function callLambda(payload: unknown): Promise<LambdaResponse | nul
   } catch (e) {
     return { ok: false, error: String(e) };
   }
+}
+
+// Export helper function for easier use
+export async function invokeLambda(payload: unknown): Promise<LambdaResponse> {
+  const result = await callLambda(payload);
+  return result ?? { ok: false, error: "No response from Lambda" };
 }

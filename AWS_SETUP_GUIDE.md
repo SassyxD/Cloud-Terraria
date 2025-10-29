@@ -1,23 +1,93 @@
-# AWS Infrastructure Setup Guide
+# AWS Credentials Setup Guide
 
-Your Cloud Terraria frontend is ready, but you need to deploy the AWS infrastructure to make server creation functional. Follow these steps:
+## 🔐 Complete AWS Setup for Cloud Terraria
 
-## Prerequisites
+### Step 1: Install AWS CLI (Current Status)
 
-1. **AWS Account** with programmatic access
-2. **Terraform** installed on your machine
-3. **AWS CLI** configured with your credentials
+The AWS CLI installation via winget was started. Let's complete the setup:
 
-## Step 1: Install Required Tools
+1. **Close all PowerShell windows** and open a new one
+2. **Test installation**: 
+   ```powershell
+   aws --version
+   ```
 
-### Install Terraform
-- **Windows**: Download from https://terraform.io/downloads
-- **macOS**: `brew install terraform`
-- **Linux**: Use package manager or download binary
+If it still doesn't work, download manually:
+- **Download**: https://awscli.amazonaws.com/AWSCLIV2.msi  
+- **Install**: Run the MSI installer
+- **Restart**: Open new PowerShell window
 
-### Install AWS CLI
-- Download from https://aws.amazon.com/cli/
-- Configure with: `aws configure`
+### Step 2: Create AWS Account and Get Credentials
+
+#### Option A: Create New AWS Account (Recommended)
+1. Go to https://aws.amazon.com/
+2. Click "Create an AWS Account" 
+3. **Free Tier Benefits**:
+   - EC2 t3.micro: 750 hours/month FREE
+   - RDS t3.micro: 750 hours/month FREE
+   - Lambda: 1M requests/month FREE
+   - Perfect for your Terraria project!
+
+#### Option B: Use Existing AWS Account
+1. Log into AWS Console: https://console.aws.amazon.com/
+
+### Step 3: Create IAM User for Terraform
+
+**⚠️ Important**: Don't use root account for operations.
+
+1. **Go to IAM**: https://console.aws.amazon.com/iam/
+2. **Users** → **"Create user"**
+3. **Username**: `terraria-terraform`
+4. **Access type**: "Programmatic access" 
+5. **Permissions** - Attach policies:
+   - `AmazonEC2FullAccess`
+   - `AmazonRDSFullAccess` 
+   - `AWSLambdaFullAccess`
+   - `IAMFullAccess`
+   - `AmazonVPCFullAccess`
+6. **📋 SAVE**: Access Key ID & Secret Access Key
+
+### Step 4: Configure AWS CLI
+
+```powershell
+# Configure credentials
+aws configure
+```
+
+Enter when prompted:
+- **AWS Access Key ID**: [From Step 3]
+- **AWS Secret Access Key**: [From Step 3]  
+- **Default region**: `us-east-1`
+- **Output format**: `json`
+
+### Step 5: Verify Setup
+
+```powershell
+# Test connection
+aws sts get-caller-identity
+
+# Should return your account info
+```
+
+### Step 6: Deploy Infrastructure
+
+```powershell
+# Navigate to terraform
+cd d:\terraria\infra\terraform
+
+# Validate configuration
+.\terraform.exe validate
+
+# See what will be created
+.\terraform.exe plan
+
+# For production, create terraform.tfvars:
+# enable_rds = true
+# rds_password = "YourSecurePassword123!"
+
+# Deploy (when ready)
+.\terraform.exe apply
+```
 
 ## Step 2: Configure AWS Credentials
 

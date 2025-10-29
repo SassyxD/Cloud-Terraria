@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface ServerCardProps {
   server: {
     id: number;
@@ -13,7 +15,47 @@ interface ServerCardProps {
   };
 }
 
+interface ServerStatus {
+  publicIp?: string;
+  state?: string;
+}
+
 export function ServerCard({ server }: ServerCardProps) {
+  const [serverStatus, setServerStatus] = useState<ServerStatus>({});
+  const [copying, setCopying] = useState(false);
+
+  useEffect(() => {
+    if (server.instanceId && server.state === "RUNNING") {
+      fetchServerStatus();
+    }
+  }, [server.instanceId, server.state]);
+
+  const fetchServerStatus = async () => {
+    try {
+      const response = await fetch("/api/servers/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instanceId: server.instanceId }),
+      });
+      const data = await response.json();
+      if (data.publicIp) {
+        setServerStatus({ publicIp: data.publicIp, state: data.state });
+      }
+    } catch (error) {
+      console.error("Failed to fetch server status:", error);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopying(true);
+      setTimeout(() => setCopying(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+    }
+  };
+
   const getStateColor = (state: string) => {
     switch (state.toUpperCase()) {
       case "RUNNING":
@@ -82,6 +124,28 @@ export function ServerCard({ server }: ServerCardProps) {
 
         {/* Server Info */}
         <div className="space-y-2 pt-2 border-t border-[#2a3548]">
+          {serverStatus.publicIp && server.state === "RUNNING" && (
+            <div className="mb-3 p-3 bg-[#2a3548] rounded-lg border border-[#4a90e2]/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-400 uppercase tracking-wider">Connect to Server</span>
+                <button
+                  onClick={() => copyToClipboard(`${serverStatus.publicIp}:${server.port}`)}
+                  className="text-xs text-[#4a90e2] hover:text-[#5fa3e3] transition-colors"
+                >
+                  {copying ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-mono text-white bg-[#1a2537] px-3 py-2 rounded border border-[#3a4558]">
+                  {serverStatus.publicIp}:{server.port}
+                </code>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Use this IP address in Terraria multiplayer menu
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-400">Port:</span>
             <span className="text-white font-mono bg-[#2a3548] px-2 py-1 rounded">
