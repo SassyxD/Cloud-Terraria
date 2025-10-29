@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { api } from "~/trpc/react";
 
 interface ServerCardProps {
   server: {
@@ -13,6 +14,7 @@ interface ServerCardProps {
     createdAt: Date;
     updatedAt: Date;
   };
+  onUpdate?: () => void;
 }
 
 interface ServerStatus {
@@ -20,9 +22,45 @@ interface ServerStatus {
   state?: string;
 }
 
-export function ServerCard({ server }: ServerCardProps) {
+export function ServerCard({ server, onUpdate }: ServerCardProps) {
   const [serverStatus, setServerStatus] = useState<ServerStatus>({});
   const [copying, setCopying] = useState(false);
+
+  const startMutation = api.server.start.useMutation({
+    onSuccess: () => {
+      onUpdate?.();
+    },
+  });
+
+  const stopMutation = api.server.stop.useMutation({
+    onSuccess: () => {
+      onUpdate?.();
+    },
+  });
+
+  const deleteMutation = api.server.delete.useMutation({
+    onSuccess: () => {
+      onUpdate?.();
+    },
+  });
+
+  const handleStart = () => {
+    if (confirm("Start this server?")) {
+      startMutation.mutate({ id: server.id });
+    }
+  };
+
+  const handleStop = () => {
+    if (confirm("Stop this server?")) {
+      stopMutation.mutate({ id: server.id });
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm("Delete this server? This action cannot be undone.")) {
+      deleteMutation.mutate({ id: server.id });
+    }
+  };
 
   useEffect(() => {
     if (server.instanceId && server.state === "RUNNING") {
@@ -172,19 +210,47 @@ export function ServerCard({ server }: ServerCardProps) {
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
+          {server.state === "stopped" ? (
+            <button
+              onClick={handleStart}
+              disabled={startMutation.isPending}
+              className="flex-1 px-4 py-2 rounded-lg bg-[#5fd35f]/20 hover:bg-[#5fd35f]/30 transition-colors text-sm font-medium border border-[#5fd35f]/50 text-[#5fd35f] disabled:opacity-50"
+            >
+              {startMutation.isPending ? "Starting..." : "Start Server"}
+            </button>
+          ) : server.state === "running" ? (
+            <button
+              onClick={handleStop}
+              disabled={stopMutation.isPending}
+              className="flex-1 px-4 py-2 rounded-lg bg-[#f4c430]/20 hover:bg-[#f4c430]/30 transition-colors text-sm font-medium border border-[#f4c430]/50 text-[#f4c430] disabled:opacity-50"
+            >
+              {stopMutation.isPending ? "Stopping..." : "Stop Server"}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="flex-1 px-4 py-2 rounded-lg bg-[#2a3548] transition-colors text-sm font-medium border border-[#4a90e2]/30 opacity-50"
+            >
+              {server.state}
+            </button>
+          )}
+          
           <button
-            className="flex-1 px-4 py-2 rounded-lg bg-[#2a3548] hover:bg-[#3a4558] transition-colors text-sm font-medium border border-[#4a90e2]/30 disabled:opacity-50"
-            disabled={server.state !== "RUNNING"}
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="px-4 py-2 rounded-lg bg-[#2a3548] hover:bg-[#e74c3c]/20 hover:border-[#e74c3c] transition-colors text-sm font-medium border border-[#4a90e2]/30 text-[#e74c3c] disabled:opacity-50"
+            title="Delete server"
           >
-            Connect
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-[#2a3548] hover:bg-[#e74c3c]/20 hover:border-[#e74c3c] transition-colors text-sm font-medium border border-[#4a90e2]/30"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+            {deleteMutation.isPending ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

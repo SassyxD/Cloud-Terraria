@@ -18,7 +18,45 @@ export async function callLambda(payload: unknown): Promise<LambdaResponse | nul
   // when AWS credentials or a real lambda are not available.
   if (!functionName) {
     console.warn("AWS_LAMBDA_FUNCTION_NAME not set — returning mock lambda response for demo");
-    return { ok: false, error: "lambda-not-configured" };
+    
+    // Enhanced mock responses for testing UI
+    const action = (payload as any)?.action;
+    const mockInstanceId = "i-mock1234567890abc";
+    const mockPublicIp = "203.0.113.42"; // Example IP from RFC 5737
+    
+    switch (action) {
+      case "START":
+        console.log("[MOCK] Starting server instance...");
+        return { 
+          ok: true, 
+          instanceId: mockInstanceId, 
+          state: "running",
+          publicIp: mockPublicIp,
+          message: "Mock server started successfully (AWS not configured)"
+        };
+      
+      case "STOP":
+        console.log("[MOCK] Stopping server instance...");
+        return { 
+          ok: true, 
+          instanceId: mockInstanceId, 
+          state: "stopped",
+          message: "Mock server stopped successfully"
+        };
+      
+      case "STATUS":
+        console.log("[MOCK] Getting server status...");
+        return { 
+          ok: true, 
+          instanceId: mockInstanceId, 
+          state: "running",
+          publicIp: mockPublicIp,
+          exists: true
+        };
+      
+      default:
+        return { ok: false, error: "lambda-not-configured" };
+    }
   }
 
   const cmd = new InvokeCommand({
