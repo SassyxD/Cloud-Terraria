@@ -19,6 +19,7 @@ Cloud Terraria enables users to create, manage, and access their own dedicated T
 
 - [Getting Started](#getting-started)
 - [Architecture](#architecture)
+- [RDS Database Deployment](#rds-database-deployment)
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
 - [Deployment](#deployment)
@@ -72,6 +73,45 @@ Cloud Terraria enables users to create, manage, and access their own dedicated T
    ```
 
 Visit `http://localhost:3000` to access the application.
+
+## RDS Database Deployment
+
+This project uses **AWS RDS PostgreSQL** as the primary database service for production deployment.
+
+### Quick RDS Setup
+
+**Option 1: Automated Script**
+```bash
+# Linux/Mac
+chmod +x scripts/deploy-rds.sh
+./scripts/deploy-rds.sh
+
+# Windows
+scripts\deploy-rds.bat
+```
+
+**Option 2: AWS Console (Recommended for AWS Academy)**
+
+1. Deploy VPC: Upload `infra/cloudformation/vpc.yaml`
+2. Deploy RDS: Upload `infra/cloudformation/rds.yaml`
+3. Get connection string from stack outputs
+4. Update `.env` with `DATABASE_URL`
+
+**Detailed Guide**: See [RDS Quick Start Guide](RDS_QUICK_START.md) or [Full RDS Deployment Guide](RDS_DEPLOYMENT_GUIDE.md)
+
+### RDS Features
+
+- PostgreSQL 15.4 with automated backups
+- Performance Insights for monitoring
+- CloudWatch Logs integration
+- Encrypted storage with AWS KMS
+- Private subnet deployment (no public access)
+- Multi-AZ support for high availability
+- Free tier eligible (db.t3.micro)
+
+### Cost
+- **Free Tier**: $0/month (first 12 months, 750 hours)
+- **After Free Tier**: ~$18/month (db.t3.micro + 20GB storage)
 
 ## Architecture
 
