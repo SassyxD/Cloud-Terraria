@@ -13,7 +13,7 @@ Cloud Terraria enables users to create, manage, and access their own dedicated T
 - **Server Management**: Start, stop, and monitor server status
 - **Cost Effective**: Pay-per-use EC2 instances with automatic scaling
 - **Modern UI**: Responsive, Terraria-themed interface
-- **Infrastructure as Code**: Fully automated AWS deployment via Terraform
+- **Infrastructure as Code**: Fully automated AWS deployment via CloudFormation
 
 ## Table of Contents
 
@@ -36,8 +36,7 @@ Cloud Terraria enables users to create, manage, and access their own dedicated T
 ### Prerequisites
 
 - Node.js 18+ and pnpm
-- AWS CLI configured with appropriate credentials
-- Terraform 1.0+
+- AWS CLI configured with appropriate credentials (or AWS Console access)
 - Discord application for OAuth
 
 ### Quick Start
@@ -57,11 +56,14 @@ Cloud Terraria enables users to create, manage, and access their own dedicated T
 
 3. **Deploy AWS infrastructure**
    ```bash
-   # Windows
-   ./deploy-aws.bat
+   # Option 1: AWS Console (Recommended for AWS Academy)
+   # See infra/cloudformation/README.md for detailed steps
    
-   # Unix/Linux/macOS
-   ./deploy-aws.sh
+   # Option 2: AWS CLI
+   cd infra/cloudformation
+   aws cloudformation create-stack \
+     --stack-name terraria-vpc \
+     --template-body file://vpc.yaml
    ```
 
 4. **Start development server**
@@ -198,14 +200,19 @@ These scripts will:
 If you prefer manual deployment:
 
 ```bash
-# 1. Deploy infrastructure
-cd infra/terraform
-terraform init
-terraform plan
-terraform apply
+# 1. Deploy infrastructure (Choose one method)
+
+# Method A: AWS Console (Recommended for AWS Academy)
+# Follow the guide in infra/cloudformation/README.md
+
+# Method B: AWS CLI
+cd infra/cloudformation
+aws cloudformation create-stack \
+  --stack-name terraria-vpc \
+  --template-body file://vpc.yaml
 
 # 2. Update environment variables
-# Copy lambda_function_name from Terraform output to .env
+# Copy outputs from CloudFormation stacks to .env
 
 # 3. Set up database
 npx prisma migrate dev
@@ -466,57 +473,104 @@ export const serverRouter = createTRPCRouter({
 
 ### AWS Architecture
 
-The infrastructure is deployed using Terraform and consists of:
+The infrastructure is deployed using AWS CloudFormation and consists of:
 
-- **VPC and Networking**: Isolated network environment with public subnets
-- **Security Groups**: Firewall rules allowing Terraria traffic on port 7777
+- **VPC and Networking**: Isolated network environment with public and private subnets, NAT Gateway
+- **Security Groups**: Firewall rules allowing Terraria traffic on port 7777 and database access
 - **IAM Roles**: Permissions for Lambda to manage EC2 instances
 - **Lambda Function**: Serverless EC2 lifecycle management
+- **RDS PostgreSQL**: Managed database service for application data
 - **EC2 Instances**: On-demand Ubuntu hosts running Dockerized Terraria servers
 
 ### Infrastructure Components
 
-**Network Setup:**
-```hcl
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-}
+**VPC Template (vpc.yaml):**
+```yaml
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
 
-resource "aws_security_group" "terraria" {
-  ingress {
-    from_port   = 7777
-    to_port     = 7777
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+  TerrariaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 7777
+          ToPort: 7777
+          CidrIp: 0.0.0.0/0
+          Description: Terraria game port
 ```
 
-**Lambda Function:**
-```hcl
-resource "aws_lambda_function" "ec2_manager" {
-  filename         = "lambda-deployment.zip"
-  function_name    = "cloud-terraria-ec2-manager"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "index.handler"
-  runtime         = "nodejs20.x"
-  timeout         = 60
-}
+**Lambda Template (lambda.yaml):**
+```yaml
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: terraria-server-manager
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Timeout: 60
+      Code:
+        ZipFile: |
+          # Lambda function code for EC2 management
+```
+
+**RDS Template (rds.yaml):**
+```yaml
+Resources:
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      EngineVersion: '15.4'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp3
+      StorageEncrypted: true
 ```
 
 ### Deployment Configuration
 
-Create `infra/terraform/terraform.tfvars`:
+CloudFormation templates are located in `infra/cloudformation/`. 
 
-```hcl
-project               = "cloud-terraria"
-region               = "us-east-1"
-instance_type        = "t3.small"
-allow_terraria_cidr  = "0.0.0.0/0"
-open_ssh            = false
+**Available Templates:**
+- `vpc.yaml` - VPC with public and private subnets
+- `rds.yaml` - PostgreSQL database instance
+- `lambda.yaml` - Lambda function for EC2 management
+
+**Quick Deploy via AWS Console:**
+
+1. Navigate to CloudFormation in AWS Console
+2. Create Stack > Upload template file
+3. Deploy in this order:
+   - VPC stack first
+   - RDS stack (use VPC outputs)
+   - Lambda stack (use VPC outputs)
+
+**Parameters Example (`parameters.example.json`):**
+```json
+{
+  "Parameters": {
+    "Environment": "production",
+    "DBPassword": "SecurePassword123!",
+    "InstanceType": "t2.medium"
+  }
+}
 ```
+
+See `infra/cloudformation/README.md` for detailed deployment instructions.
+
+
+See `infra/cloudformation/README.md` for detailed deployment instructions.
+
+For AWS Academy users, Terraform infrastructure is available in the `terraform-infrastructure` branch.
+
+## Security
 
 `vpc.tf`:
 

@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lambda function for managing Terraria EC2 instances'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    Description: Environment name
+    AllowedValues:
+      - development
+      - staging
+      - production
+
+  VpcStackName:
+    Type: String
+    Description: Name of the VPC stack to import values from
+    Default: terraria-vpc
+
+  TerrariaInstanceName:
+    Type: String
+    Default: terraria-server
+    Description: Name tag of the EC2 instance to manage
+
+  InstanceType:
+    Type: String
+    Default: t2.medium
+    Description: EC2 instance type for Terraria server
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t3.micro
+      - t3.small
+      - t3.medium
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Environment Configuration
+        Parameters:
+          - Environment
+          - VpcStackName
+      - Label:
+          default: EC2 Configuration
+        Parameters:
+          - TerrariaInstanceName
+          - InstanceType
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Environment}-terraria-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EC2Management
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeInstanceStatus
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                  - ec2:CreateTags
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:RunInstances
+                Resource:
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+              - Effect: Allow
+                Action:
+                  - ec2:RunInstances
+                Resource:
+                  - !Sub arn:aws:ec2:${AWS::Region}::image/*
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-terraria-lambda-role
+        - Key: Environment
+          Value: !Ref Environment
+
+  TerrariaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${Environment}-terraria-server-sg
+      GroupDescription: Security group for Terraria game server
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcStackName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 7777
+          ToPort: 7777
+          CidrIp: 0.0.0.0/0
+          Description: Terraria game port
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: All outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-terraria-server-sg
+        - Key: Environment
+          Value: !Ref Environment
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${Environment}-terraria-server-manager
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          INSTANCE_NAME: !Ref TerrariaInstanceName
+          INSTANCE_TYPE: !Ref InstanceType
+          SUBNET_ID:
+            Fn::ImportValue: !Sub ${VpcStackName}-PublicSubnet1
+          SECURITY_GROUP_ID: !Ref TerrariaSecurityGroup
+          REGION: !Ref AWS::Region
+      Code:
+        ZipFile: |
+          const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand, RunInstancesCommand, DescribeInstanceStatusCommand } = require('@aws-sdk/client-ec2');
+          
+          const ec2Client = new EC2Client({ region: process.env.REGION });
+          
+          async function findInstance(instanceName) {
+            const command = new DescribeInstancesCommand({
+              Filters: [
+                { Name: 'tag:Name', Values: [instanceName] },
+                { Name: 'instance-state-name', Values: ['pending', 'running', 'stopping', 'stopped'] }
+              ]
+            });
+            
+            const response = await ec2Client.send(command);
+            if (response.Reservations && response.Reservations.length > 0) {
+              return response.Reservations[0].Instances[0];
+            }
+            return null;
+          }
+          
+          async function createInstance(instanceName, instanceType, subnetId, securityGroupId) {
+            const command = new RunInstancesCommand({
+              ImageId: 'ami-0c55b159cbfafe1f0',
+              InstanceType: instanceType,
+              MinCount: 1,
+              MaxCount: 1,
+              SubnetId: subnetId,
+              SecurityGroupIds: [securityGroupId],
+              TagSpecifications: [
+                {
+                  ResourceType: 'instance',
+                  Tags: [
+                    { Key: 'Name', Value: instanceName },
+                    { Key: 'Purpose', Value: 'Terraria Server' }
+                  ]
+                }
+              ],
+              UserData: Buffer.from(`#!/bin/bash
+                apt-get update
+                apt-get install -y wget unzip
+                mkdir -p /opt/terraria
+                cd /opt/terraria
+                wget https://terraria.org/api/download/pc-dedicated-server/terraria-server-1449.zip
+                unzip terraria-server-1449.zip
+                chmod +x */TerrariaServer.bin.x86_64
+              `).toString('base64')
+            });
+            
+            const response = await ec2Client.send(command);
+            return response.Instances[0];
+          }
+          
+          async function getInstanceStatus(instanceId) {
+            const command = new DescribeInstanceStatusCommand({
+              InstanceIds: [instanceId],
+              IncludeAllInstances: true
+            });
+            
+            const response = await ec2Client.send(command);
+            if (response.InstanceStatuses && response.InstanceStatuses.length > 0) {
+              return response.InstanceStatuses[0];
+            }
+            return null;
+          }
+          
+          exports.handler = async (event) => {
+            const action = event.action;
+            const instanceName = process.env.INSTANCE_NAME;
+            
+            try {
+              let instance = await findInstance(instanceName);
+              
+              switch (action) {
+                case 'START':
+                  if (!instance) {
+                    instance = await createInstance(
+                      instanceName,
+                      process.env.INSTANCE_TYPE,
+                      process.env.SUBNET_ID,
+                      process.env.SECURITY_GROUP_ID
+                    );
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        message: 'Instance created and starting',
+                        instanceId: instance.InstanceId,
+                        state: instance.State.Name
+                      })
+                    };
+                  } else if (instance.State.Name === 'stopped') {
+                    const startCommand = new StartInstancesCommand({
+                      InstanceIds: [instance.InstanceId]
+                    });
+                    await ec2Client.send(startCommand);
+                    
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        message: 'Instance starting',
+                        instanceId: instance.InstanceId
+                      })
+                    };
+                  } else {
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        message: 'Instance already running or starting',
+                        instanceId: instance.InstanceId,
+                        state: instance.State.Name
+                      })
+                    };
+                  }
+                
+                case 'STOP':
+                  if (!instance) {
+                    return {
+                      statusCode: 404,
+                      body: JSON.stringify({ message: 'Instance not found' })
+                    };
+                  } else if (instance.State.Name === 'running' || instance.State.Name === 'pending') {
+                    const stopCommand = new StopInstancesCommand({
+                      InstanceIds: [instance.InstanceId]
+                    });
+                    await ec2Client.send(stopCommand);
+                    
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        message: 'Instance stopping',
+                        instanceId: instance.InstanceId
+                      })
+                    };
+                  } else {
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        message: 'Instance already stopped',
+                        instanceId: instance.InstanceId,
+                        state: instance.State.Name
+                      })
+                    };
+                  }
+                
+                case 'STATUS':
+                  if (!instance) {
+                    return {
+                      statusCode: 200,
+                      body: JSON.stringify({
+                        exists: false,
+                        message: 'Instance not found'
+                      })
+                    };
+                  }
+                  
+                  const status = await getInstanceStatus(instance.InstanceId);
+                  
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                      exists: true,
+                      instanceId: instance.InstanceId,
+                      state: instance.State.Name,
+                      publicIp: instance.PublicIpAddress,
+                      privateIp: instance.PrivateIpAddress,
+                      systemStatus: status?.SystemStatus?.Status,
+                      instanceStatus: status?.InstanceStatus?.Status
+                    })
+                  };
+                
+                default:
+                  return {
+                    statusCode: 400,
+                    body: JSON.stringify({ message: 'Invalid action' })
+                  };
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({
+                  message: 'Internal server error',
+                  error: error.message
+                })
+              };
+            }
+          };
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-terraria-server-manager
+        - Key: Environment
+          Value: !Ref Environment
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LambdaFunction}
+      RetentionInDays: 7
+
+Outputs:
+  LambdaFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt LambdaFunction.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaArn
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref LambdaFunction
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaName
+
+  LambdaRoleArn:
+    Description: Lambda execution role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaRoleArn
+
+  TerrariaSecurityGroupId:
+    Description: Terraria server security group ID
+    Value: !Ref TerrariaSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-ServerSecurityGroup
