@@ -32,7 +32,7 @@ resource "aws_lambda_function" "ec2_manager" {
     Name = "${var.project}-lambda-function"
   }
 
-  depends_on = [aws_iam_role_policy_attachment.logs, aws_iam_role_policy_attachment.ec2_attach]
+  depends_on = [aws_iam_role_policy_attachment.logs, aws_iam_role_policy_attachment.ec2_access]
 }
 
 # Lambda Function URL for external access
