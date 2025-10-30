@@ -1,0 +1,286 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 Instance for Next.js Terraria Web App'
+
+Parameters:
+  KeyName:
+    Description: EC2 Key Pair for SSH access
+    Type: String
+    Default: vockey
+    
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.small
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    
+  VpcId:
+    Description: VPC ID where EC2 will be launched
+    Type: String
+    
+  SubnetId:
+    Description: Public Subnet ID for EC2
+    Type: String
+    
+  AllowSSHFrom:
+    Description: IP address range allowed to SSH (use 0.0.0.0/0 for testing only)
+    Type: String
+    Default: 0.0.0.0/0
+
+Resources:
+  # Security Group for Next.js Web App
+  WebAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: terraria-webapp-sg
+      GroupDescription: Security group for Next.js web application
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # SSH access
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowSSHFrom
+          Description: SSH access
+        
+        # HTTP access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP access
+        
+        # HTTPS access (for future SSL)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS access
+        
+        # Next.js dev port (optional, for testing)
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+          Description: Next.js direct access
+      
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound
+      
+      Tags:
+        - Key: Name
+          Value: terraria-webapp-sg
+
+  # IAM Role for EC2 (to access other AWS services)
+  WebAppEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: terraria-webapp-ec2-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: TerrariaWebAppPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Lambda invoke permissions
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:GetFunction
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:TerrariaServerManager*'
+              
+              # RDS permissions (if needed)
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                Resource: '*'
+              
+              # EC2 describe permissions (to list servers)
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeTags
+                Resource: '*'
+              
+              # Secrets Manager (to get DB password)
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:terraria/*'
+              
+              # S3 access (for backups)
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::terraria-backups-*'
+                  - !Sub 'arn:aws:s3:::terraria-backups-*/*'
+
+  WebAppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: terraria-webapp-profile
+      Roles:
+        - !Ref WebAppEC2Role
+
+  # EC2 Instance
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref WebAppInstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref WebAppSecurityGroup
+          SubnetId: !Ref SubnetId
+      
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            DeleteOnTermination: true
+      
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Update system
+          yum update -y
+          
+          # Install Node.js 20.x
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+          yum install -y nodejs git
+          
+          # Install PM2
+          npm install -g pm2
+          
+          # Install nginx
+          amazon-linux-extras install nginx1 -y || yum install nginx -y
+          
+          # Create app directory
+          mkdir -p /var/www/terraria
+          chown ec2-user:ec2-user /var/www/terraria
+          
+          # Clone repository (replace with your repo)
+          # cd /var/www/terraria
+          # sudo -u ec2-user git clone https://github.com/SassyxD/Cloud-Terraria.git .
+          
+          # Create placeholder index
+          cat > /var/www/html/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Terraria Web App - Setup Required</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      max-width: 800px;
+                      margin: 50px auto;
+                      padding: 20px;
+                      background: #f5f5f5;
+                  }
+                  .container {
+                      background: white;
+                      padding: 30px;
+                      border-radius: 8px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  }
+                  h1 { color: #667eea; }
+                  pre {
+                      background: #f5f5f5;
+                      padding: 15px;
+                      border-radius: 4px;
+                      overflow-x: auto;
+                  }
+                  code { color: #e74c3c; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🎮 Terraria Web App EC2 Instance</h1>
+                  <p>Your EC2 instance is ready! Complete the setup:</p>
+                  
+                  <h2>1. SSH into the instance:</h2>
+                  <pre>ssh -i vockey.pem ec2-user@${WebAppInstance.PublicIp}</pre>
+                  
+                  <h2>2. Clone your repository:</h2>
+                  <pre>cd /var/www/terraria
+          git clone https://github.com/SassyxD/Cloud-Terraria.git .</pre>
+                  
+                  <h2>3. Run deployment script:</h2>
+                  <pre>chmod +x scripts/deploy-nextjs-ec2.sh
+          ./scripts/deploy-nextjs-ec2.sh</pre>
+                  
+                  <h2>4. Configure environment:</h2>
+                  <pre>nano .env</pre>
+                  
+                  <p><strong>Instance IP:</strong> ${WebAppInstance.PublicIp}</p>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+          # Start nginx temporarily
+          systemctl enable nginx
+          systemctl start nginx
+          
+          echo "EC2 instance ready for deployment!"
+      
+      Tags:
+        - Key: Name
+          Value: terraria-webapp
+        - Key: Application
+          Value: Terraria
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref WebAppInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+  
+  PublicIP:
+    Description: Public IP address
+    Value: !GetAtt WebAppInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIP'
+  
+  PublicDNS:
+    Description: Public DNS name
+    Value: !GetAtt WebAppInstance.PublicDnsName
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicDNS'
+  
+  WebURL:
+    Description: Web application URL
+    Value: !Sub 'http://${WebAppInstance.PublicIp}'
+  
+  SSHCommand:
+    Description: SSH command to connect
+    Value: !Sub 'ssh -i ${KeyName}.pem ec2-user@${WebAppInstance.PublicIp}'
+  
+  SecurityGroupId:
+    Description: Security Group ID
+    Value: !Ref WebAppSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'

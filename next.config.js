@@ -5,6 +5,22 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  // Standalone output for EC2 deployment
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
+  
+  // Optimize for production
+  reactStrictMode: true,
+  
+  // Compression
+  compress: true,
+  
+  // Logging
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+};
 
 export default config;

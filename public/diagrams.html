@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Terraria - System Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .diagram-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .diagram-section h2 {
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+        .diagram-section p {
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .mermaid {
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1rem 0;
+        }
+        .nav {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☁️ Cloud Terraria System Diagrams</h1>
+        
+        <nav class="nav">
+            <a href="#usecase">Use Case</a>
+            <a href="#sequence-create">Sequence - Create</a>
+            <a href="#sequence-start">Sequence - Start</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#component">Components</a>
+            <a href="#security">Security</a>
+            <a href="#deployment">Deployment</a>
+        </nav>
+
+        <!-- Use Case Diagram -->
+        <div id="usecase" class="diagram-section">
+            <h2>🎯 Use Case Diagram</h2>
+            <p>System actors and their interactions with Cloud Terraria platform</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Cloud Terraria System"
+        UC1[Sign In]
+        UC2[Sign Out]
+        UC3[Create Server]
+        UC4[View Server List]
+        UC5[Start Server]
+        UC6[Stop Server]
+        UC7[Delete Server]
+        UC8[View Server Status]
+        UC9[Copy Server IP]
+        UC10[Join Game]
+        UC11[Monitor Servers]
+        UC12[Receive Notifications]
+    end
+    
+    Player((Player))
+    Admin((Administrator))
+    System((AWS System))
+    
+    Player --> UC1
+    Player --> UC2
+    Player --> UC3
+    Player --> UC4
+    Player --> UC5
+    Player --> UC6
+    Player --> UC7
+    Player --> UC8
+    Player --> UC9
+    Player --> UC10
+    
+    Admin --> UC11
+    Admin --> UC12
+    
+    UC3 --> System
+    UC5 --> System
+    UC6 --> System
+    UC7 --> System
+    UC8 --> System
+    UC11 --> System
+    UC12 --> System
+    
+    style Player fill:#4a90e2
+    style Admin fill:#e24a4a
+    style System fill:#4ae2a8
+            </div>
+        </div>
+
+        <!-- Sequence: Create Server -->
+        <div id="sequence-create" class="diagram-section">
+            <h2>🔄 Sequence Diagram - Create Server</h2>
+            <p>Step-by-step flow when creating a new Terraria server</p>
+            <div class="mermaid">
+sequenceDiagram
+    participant P as Player
+    participant UI as Next.js UI
+    participant API as tRPC API
+    participant L as AWS Lambda
+    participant EC2 as EC2 Instance
+    participant DB as RDS Database
+    
+    P->>UI: Click "Create Server"
+    UI->>API: createServer(name, worldSize)
+    API->>DB: Check user limits
+    DB-->>API: User can create
+    API->>L: Invoke Lambda
+    L->>EC2: Launch Instance
+    EC2-->>L: Instance Created
+    L->>DB: Save server info
+    DB-->>L: Saved
+    L-->>API: Server ID + IP
+    API-->>UI: Success
+    UI-->>P: Show server card
+            </div>
+        </div>
+
+        <!-- Sequence: Start Server -->
+        <div id="sequence-start" class="diagram-section">
+            <h2>▶️ Sequence Diagram - Start Server</h2>
+            <p>Process flow for starting a stopped server</p>
+            <div class="mermaid">
+sequenceDiagram
+    participant P as Player
+    participant UI as Next.js UI
+    participant API as tRPC API
+    participant L as AWS Lambda
+    participant EC2 as EC2 Instance
+    participant CW as CloudWatch
+    
+    P->>UI: Click "Start Server"
+    UI->>API: startServer(serverId)
+    API->>L: Start instance request
+    L->>EC2: StartInstances API
+    EC2-->>L: Starting
+    L->>CW: Enable monitoring
+    L-->>API: Started
+    API-->>UI: Server starting
+    UI-->>P: Status: Running
+    
+    Note over EC2,CW: CloudWatch monitors health
+    CW-->>UI: Real-time status updates
+            </div>
+        </div>
+
+        <!-- Architecture Diagram -->
+        <div id="architecture" class="diagram-section">
+            <h2>🏗️ Architecture Diagram</h2>
+            <p>Complete system architecture showing all AWS services and data flow</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Client Layer"
+        Browser[Web Browser]
+        TerrariaClient[Terraria Game Client]
+    end
+    
+    subgraph "Application Layer - EC2"
+        NextJS[Next.js App<br/>nginx:80 → PM2:3000]
+        Auth[NextAuth.js]
+        tRPC[tRPC API]
+    end
+    
+    subgraph "AWS Cloud"
+        subgraph "Authentication"
+            Cognito[AWS Cognito<br/>User Pool]
+        end
+        
+        subgraph "Compute"
+            Lambda[AWS Lambda<br/>Server Manager]
+            EC2[EC2 Instances<br/>Terraria Servers]
+        end
+        
+        subgraph "Data"
+            RDS[(RDS PostgreSQL<br/>Database)]
+            S3[S3 Bucket<br/>World Backups]
+            Secrets[Secrets Manager<br/>Passwords]
+        end
+        
+        subgraph "Networking"
+            VPC[VPC]
+            SG[Security Groups]
+        end
+        
+        subgraph "Monitoring"
+            CloudWatch[CloudWatch<br/>Logs & Metrics]
+            Alarms[CloudWatch Alarms]
+            SNS[SNS Topic<br/>Notifications]
+        end
+    end
+    
+    Browser --> NextJS
+    NextJS --> Auth
+    Auth --> Cognito
+    NextJS --> tRPC
+    tRPC --> Lambda
+    tRPC --> RDS
+    Lambda --> EC2
+    Lambda --> S3
+    Lambda --> Secrets
+    EC2 --> S3
+    TerrariaClient -.->|Port 7777| EC2
+    
+    EC2 --> CloudWatch
+    CloudWatch --> Alarms
+    Alarms --> SNS
+    SNS -.->|Email| Browser
+    
+    EC2 -.-> VPC
+    VPC -.-> SG
+    
+    style Browser fill:#4a90e2
+    style TerrariaClient fill:#4ae290
+    style NextJS fill:#000
+    style Lambda fill:#ff9900
+    style EC2 fill:#ff9900
+    style RDS fill:#527fff
+    style S3 fill:#569a31
+    style Cognito fill:#dd344c
+    style CloudWatch fill:#ff4f8b
+            </div>
+        </div>
+
+        <!-- Component Diagram -->
+        <div id="component" class="diagram-section">
+            <h2>🧩 Component Diagram</h2>
+            <p>Frontend and backend component structure</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Frontend Components"
+        Page[page.tsx]
+        ServerList[ServerList.tsx]
+        ServerCard[ServerCard.tsx]
+        CreateBtn[CreateServerButton.tsx]
+        Empty[EmptyState.tsx]
+        Loading[Loading.tsx]
+    end
+    
+    subgraph "Backend Routers"
+        RootRouter[root.ts]
+        ServerRouter[server.ts]
+        PostRouter[post.ts]
+    end
+    
+    subgraph "Services"
+        AuthService[auth.ts]
+        LambdaClient[lambdaClient.ts]
+        DBService[db.ts]
+    end
+    
+    Page --> ServerList
+    ServerList --> ServerCard
+    ServerList --> Empty
+    ServerList --> Loading
+    Page --> CreateBtn
+    
+    ServerList --> ServerRouter
+    CreateBtn --> ServerRouter
+    ServerRouter --> RootRouter
+    PostRouter --> RootRouter
+    
+    ServerRouter --> LambdaClient
+    ServerRouter --> DBService
+    RootRouter --> AuthService
+    
+    style Page fill:#61dafb
+    style ServerRouter fill:#3178c6
+    style LambdaClient fill:#ff9900
+            </div>
+        </div>
+
+        <!-- Security Flow -->
+        <div id="security" class="diagram-section">
+            <h2>🔒 Security Flow Diagram</h2>
+            <p>Authentication and authorization flow</p>
+            <div class="mermaid">
+graph TD
+    Start([User Request]) --> Auth{Authenticated?}
+    Auth -->|No| Login[Redirect to Sign In]
+    Auth -->|Yes| Session{Valid Session?}
+    
+    Login --> ChooseProvider{Provider?}
+    ChooseProvider -->|Cognito| CognitoAuth[AWS Cognito OAuth]
+    ChooseProvider -->|Mock| MockAuth[Mock Username]
+    
+    CognitoAuth --> CreateSession[Create JWT Session]
+    MockAuth --> CreateSession
+    
+    Session -->|No| Login
+    Session -->|Yes| CheckOwner{Owner Check}
+    
+    CheckOwner -->|Create| AllowCreate[✓ Allow]
+    CheckOwner -->|Start/Stop/Delete| OwnerMatch{User = Owner?}
+    
+    OwnerMatch -->|Yes| AllowAction[✓ Allow Action]
+    OwnerMatch -->|No| Deny[✗ Deny Access]
+    
+    AllowCreate --> Execute[Execute Request]
+    AllowAction --> Execute
+    Execute --> Response([Return Response])
+    Deny --> Error([401 Unauthorized])
+    
+    style Auth fill:#ffd700
+    style CheckOwner fill:#ffd700
+    style AllowCreate fill:#90ee90
+    style AllowAction fill:#90ee90
+    style Deny fill:#ff6b6b
+            </div>
+        </div>
+
+        <!-- Deployment Diagram -->
+        <div id="deployment" class="diagram-section">
+            <h2>🚀 Deployment Diagram</h2>
+            <p>Development to production deployment pipeline</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Development"
+        Dev[Developer Machine<br/>SQLite + Mock]
+    end
+    
+    subgraph "Version Control"
+        GitHub[GitHub Repository]
+    end
+    
+    subgraph "Production - AWS Cloud us-east-1"
+        subgraph "VPC"
+            subgraph "Public Subnet"
+                EC2Web[EC2 Instance<br/>nginx + Next.js + PM2]
+            end
+            
+            subgraph "Private Subnet"
+                RDS[(RDS PostgreSQL<br/>Database)]
+            end
+        end
+        
+        Cognito[AWS Cognito<br/>User Pool]
+        Lambda[Lambda Function<br/>Server Manager]
+        EC2Game[EC2 Instances<br/>Terraria Servers]
+        S3[S3 Bucket<br/>Backups]
+        CloudWatch[CloudWatch<br/>Monitoring]
+    end
+    
+    subgraph "Players"
+        Browser[Web Browser<br/>Port 80/443]
+        Game[Terraria Client<br/>Port 7777]
+    end
+    
+    Dev -->|Push Code| GitHub
+    GitHub -->|Pull & Deploy| EC2Web
+    
+    Browser -->|HTTPS| EC2Web
+    EC2Web --> Cognito
+    EC2Web --> RDS
+    EC2Web --> Lambda
+    
+    Lambda --> EC2Game
+    Lambda --> S3
+    EC2Game --> S3
+    
+    Game -.->|Game Traffic| EC2Game
+    
+    EC2Web --> CloudWatch
+    EC2Game --> CloudWatch
+    Lambda --> CloudWatch
+    
+    style Dev fill:#4a90e2
+    style EC2Web fill:#ff9900
+    style GitHub fill:#333
+    style Lambda fill:#ff9900
+    style EC2Game fill:#ff9900
+    style RDS fill:#527fff
+    style S3 fill:#569a31
+    style Browser fill:#4ae290
+    style Game fill:#90ee90
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#764ba2',
+                lineColor: '#764ba2',
+                secondaryColor: '#4a90e2',
+                tertiaryColor: '#f5f5f5'
+            }
+        });
+    </script>
+</body>
+</html>
