@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   apps: [{
     name: 'terraria-web',
     script: 'node_modules/next/dist/bin/next',
@@ -29,4 +29,4 @@ module.exports = {
     wait_ready: true,
     listen_timeout: 10000
   }]
-}
+};
