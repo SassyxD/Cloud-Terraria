@@ -78,8 +78,6 @@ export const authConfig = {
         ]
       : []),
   ],
-  trustHost: true,
-  useSecureCookies: process.env.NODE_ENV === "production",
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",

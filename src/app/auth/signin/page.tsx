@@ -52,11 +52,9 @@ async function SignInForm() {
             <form
               action={async (formData) => {
                 "use server";
-                const username = formData.get("username");
                 await signIn("credentials", { 
-                  username,
-                  redirect: true,
-                  redirectTo: process.env.NEXTAUTH_URL || "/"
+                  username: formData.get("username"),
+                  redirectTo: "/" 
                 });
               }}
             >
@@ -99,10 +97,7 @@ async function SignInForm() {
                 <form
                   action={async () => {
                     "use server";
-                    await signIn("cognito", { 
-                      redirect: true,
-                      redirectTo: process.env.NEXTAUTH_URL || "/"
-                    });
+                    await signIn("cognito", { redirectTo: "/" });
                   }}
                 >
                   <button
