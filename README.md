@@ -4,83 +4,71 @@ A modern, scalable Terraria server management platform built with Next.js and AW
 
 ## Overview
 
-Cloud Terraria enables users to create, manage, and access their own dedicated Terraria servers in the cloud. Each authenticated user can deploy EC2 instances running containerized Terraria servers, with full lifecycle management through a beautiful web dashboard.
+Cloud Terraria enables users to create, manage, and access their own dedicated Terraria servers in the cloud. Each authenticated user can deploy EC2 instances running containerized Terraria servers, with full lifecycle management through a web dashboard.
 
 ### Key Features
 
-- **One-Click Deployment**: Create dedicated Terraria servers instantly
-- **User Authentication**: Secure Discord OAuth integration
-- **Server Management**: Start, stop, and monitor server status
-- **Cost Effective**: Pay-per-use EC2 instances with automatic scaling
-- **Modern UI**: Responsive, Terraria-themed interface
-- **Infrastructure as Code**: Fully automated AWS deployment via CloudFormation
+- One‑click deployment of dedicated Terraria servers
+- Secure authentication via Discord and/or AWS Cognito
+- Server lifecycle: create, start, stop, status, delete
+- Cost effective: pay‑per‑use EC2, easy cleanup
+- Modern UI with Next.js + Tailwind CSS
+- Infrastructure as Code via AWS CloudFormation (Terraform available in an alternate branch)
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
-- [Architecture](#architecture)
-- [RDS Database Deployment](#rds-database-deployment)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Deployment](#deployment)
-- [Configuration](#configuration)
-- [Development](#development)
-- [API Reference](#api-reference)
-- [Infrastructure](#infrastructure)
-- [Security](#security)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+- Getting Started
+- Architecture
+- RDS Database Deployment
+- Technology Stack
+- Project Structure
+- Deployment
+- Environment Variables
+- Development
+- API Reference
+- Infrastructure
+- Security and Cost
+- Troubleshooting
+- Contributing
+- License
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js 18+ and pnpm
-- AWS CLI configured with appropriate credentials (or AWS Console access)
-- Discord application for OAuth
+- AWS CLI configured (or AWS Console access)
+- Discord application (optional if using Cognito)
 
 ### Quick Start
-
-1. **Clone and install dependencies**
-   ```bash
-   git clone https://github.com/SassyxD/Cloud-Terraria.git
-   cd Cloud-Terraria
-   pnpm install
-   ```
-
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Deploy AWS infrastructure**
-   ```bash
-   # Option 1: AWS Console (Recommended for AWS Academy)
-   # See infra/cloudformation/README.md for detailed steps
-   
-   # Option 2: AWS CLI
-   cd infra/cloudformation
-   aws cloudformation create-stack \
-     --stack-name terraria-vpc \
-     --template-body file://vpc.yaml
-   ```
-
-4. **Start development server**
-   ```bash
-   pnpm dev
-   ```
-
-Visit `http://localhost:3000` to access the application.
+1) Clone and install
+```bash
+git clone https://github.com/SassyxD/Cloud-Terraria.git
+cd Cloud-Terraria
+pnpm install
+```
+2) Configure environment
+```bash
+cp .env.example .env
+# edit .env to fit your setup
+```
+3) Deploy infrastructure (CloudFormation)
+```bash
+cd infra/cloudformation
+aws cloudformation create-stack \
+  --stack-name terraria-vpc \
+  --template-body file://vpc.yaml
+```
+4) Start dev server
+```bash
+pnpm dev
+```
+Visit http://localhost:3000
 
 ## RDS Database Deployment
 
-This project uses **AWS RDS PostgreSQL** as the primary database service for production deployment.
+This project uses AWS RDS PostgreSQL in production.
 
-### Quick RDS Setup
-
-**Option 1: Automated Script**
+Quick setup:
 ```bash
 # Linux/Mac
 chmod +x scripts/deploy-rds.sh
@@ -90,961 +78,194 @@ chmod +x scripts/deploy-rds.sh
 scripts\deploy-rds.bat
 ```
 
-**Option 2: AWS Console (Recommended for AWS Academy)**
+Or via AWS Console:
+1. Deploy VPC: upload `infra/cloudformation/vpc.yaml`
+2. Deploy RDS: upload `infra/cloudformation/rds.yaml`
+3. Copy connection string from stack outputs
+4. Set `DATABASE_URL` in `.env`
 
-1. Deploy VPC: Upload `infra/cloudformation/vpc.yaml`
-2. Deploy RDS: Upload `infra/cloudformation/rds.yaml`
-3. Get connection string from stack outputs
-4. Update `.env` with `DATABASE_URL`
-
-**Detailed Guide**: See [RDS Quick Start Guide](RDS_QUICK_START.md) or [Full RDS Deployment Guide](RDS_DEPLOYMENT_GUIDE.md)
-
-### RDS Features
-
-- PostgreSQL 15.4 with automated backups
-- Performance Insights for monitoring
-- CloudWatch Logs integration
-- Encrypted storage with AWS KMS
-- Private subnet deployment (no public access)
-- Multi-AZ support for high availability
-- Free tier eligible (db.t3.micro)
-
-### Cost
-- **Free Tier**: $0/month (first 12 months, 750 hours)
-- **After Free Tier**: ~$18/month (db.t3.micro + 20GB storage)
+Guides: docs/RDS_QUICK_START.md, docs/RDS_DEPLOYMENT_GUIDE.md
 
 ## Architecture
 
-Cloud Terraria follows a modern serverless architecture pattern:
-
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Browser   │───▶│   Next.js    │───▶│   tRPC API  │───▶│ AWS Lambda  │
-│             │    │   Frontend   │    │  (Protected)│    │   (EC2 Mgr) │
-└─────────────┘    └──────────────┘    └─────────────┘    └─────────────┘
-                           │                                       │
-                           ▼                                       ▼
-                   ┌──────────────┐                        ┌─────────────┐
-                   │   Prisma     │                        │   EC2       │
-                   │   Database   │                        │  Instance   │
-                   │   (SQLite)   │                        │  (Ubuntu +  │
-                   └──────────────┘                        │   Docker)   │
-                                                          └─────────────┘
+Browser → Next.js (App Router) → tRPC (protected) → AWS Lambda (EC2 manager) → EC2 (Dockerized Terraria)
+                                 ↘ Prisma ORM → RDS PostgreSQL (prod) | SQLite (dev)
 ```
 
 ### Key Components
-
-- **Frontend**: Next.js 15 with Tailwind CSS and TypeScript
-- **Authentication**: NextAuth.js with Discord OAuth
-- **API Layer**: tRPC with session-based protection
-- **Database**: Prisma ORM with SQLite (dev) / PostgreSQL (prod)
-- **Infrastructure**: AWS Lambda, EC2, VPC managed by Terraform
-- **Containerization**: Docker-based Terraria server deployment
+- Frontend: Next.js 15, Tailwind, TypeScript
+- Authentication: NextAuth.js with Discord and/or AWS Cognito
+- API: tRPC with session-based protection
+- Database: Prisma ORM (SQLite dev / PostgreSQL prod)
+- Infrastructure: AWS Lambda, EC2, VPC via CloudFormation (Terraform in alt branch)
+- Containerization: Docker-based Terraria server
 
 ## Technology Stack
 
-### Frontend
-- **Next.js 15**: React framework with App Router
-- **TypeScript**: Type-safe development
-- **Tailwind CSS**: Utility-first styling
-- **tRPC**: End-to-end typesafe APIs
-- **NextAuth.js**: Authentication solution
+Frontend: Next.js 15, TypeScript, Tailwind, tRPC, NextAuth.js
 
-### Backend & Infrastructure
-- **AWS Lambda**: Serverless compute for EC2 management
-- **Amazon EC2**: Virtual machines for Terraria servers
-- **Terraform**: Infrastructure as Code
-- **Prisma**: Database ORM and migration tool
-- **Docker**: Containerized Terraria server deployment
-
-### Development Tools
-- **ESLint**: Code linting and formatting
-- **Prettier**: Code formatting
-- **Husky**: Git hooks for quality gates
-- **Conventional Commits**: Standardized commit messages
+Backend & Infra:
+- AWS Lambda, Amazon EC2
+- AWS CloudFormation (this branch)
+- Terraform (alt branch: `terraform-infrastructure`)
+- Prisma ORM, Docker
 
 ## Project Structure
 
 ```
 cloud-terraria/
-├── src/
-│   ├── app/                          # Next.js App Router
-│   │   ├── api/
-│   │   │   ├── auth/[...nextauth]/   # NextAuth.js routes
-│   │   │   └── trpc/[trpc]/          # tRPC API endpoints
-│   │   ├── auth/                     # Authentication pages
-│   │   ├── _components/              # Page-specific components
-│   │   ├── layout.tsx                # Root layout
-│   │   └── page.tsx                  # Home page
-│   ├── components/                   # Reusable UI components
-│   │   ├── CreateServerButton.tsx
-│   │   ├── ServerCard.tsx
-│   │   ├── EmptyState.tsx
-│   │   └── Loading.tsx
-│   ├── server/                       # Backend logic
-│   │   ├── api/                      # tRPC routers
-│   │   ├── auth/                     # Authentication config
-│   │   ├── aws/                      # AWS integrations
-│   │   └── db.ts                     # Database connection
-│   ├── styles/                       # Global styles
-│   ├── types/                        # TypeScript definitions
-│   └── env.js                        # Environment validation
-├── aws/
-│   └── lambda/                       # Lambda function code
-│       ├── index.js                  # EC2 management logic
-│       └── package.json              # Lambda dependencies
-├── infra/
-│   └── terraform/                    # Infrastructure as Code
-│       ├── main.tf                   # Main configuration
-│       ├── variables.tf              # Input variables
-│       ├── outputs.tf                # Output values
-│       ├── vpc.tf                    # VPC and networking
-│       ├── sg.tf                     # Security groups
-│       ├── iam.tf                    # IAM roles and policies
-│       └── lambda.tf                 # Lambda function
-├── prisma/
-│   ├── schema.prisma                 # Database schema
-│   └── migrations/                   # Database migrations
-├── scripts/
-│   └── validate-standards.sh         # Quality gates
-├── deploy-aws.sh                     # Deployment script (Unix)
-├── deploy-aws.bat                    # Deployment script (Windows)
-└── README.md                         # This file
+└─ src/
+   ├─ app/                         # Next.js App Router
+   │  ├─ auth/signin/page.tsx
+   │  └─ auth/signout/page.tsx
+   ├─ components/
+   ├─ server/
+   │  ├─ api/routers/              # tRPC routers (e.g., server.ts)
+   │  ├─ api/root.ts               # tRPC root router
+   │  ├─ api/trpc.ts               # tRPC setup
+   │  ├─ auth/config.ts            # NextAuth providers (Discord/Cognito)
+   │  └─ aws/lambdaClient.ts       # Lambda client (with mock fallback)
+   ├─ styles/
+   ├─ types/
+   └─ env.js
+└─ aws/
+   └─ lambda/
+      ├─ index.js                  # EC2 lifecycle
+      └─ package.json
+└─ infra/
+   └─ cloudformation/
+      ├─ vpc.yaml
+      ├─ rds.yaml
+      ├─ lambda.yaml
+      ├─ parameters.example.json
+      └─ README.md
+└─ prisma/
+   ├─ schema.prisma
+   └─ migrations/
+└─ scripts/
+└─ docs/
+└─ README.md
 ```
+
+Note: Terraform usage is documented in `docs/INFRASTRUCTURE.md` and the `terraform-infrastructure` branch.
 
 ## Deployment
 
-### Automated Deployment
-
-The easiest way to deploy Cloud Terraria is using the provided deployment scripts:
-
-**Windows:**
+### Scripts
+Windows:
 ```cmd
 deploy-aws.bat
 ```
-
-**Unix/Linux/macOS:**
+Unix/macOS:
 ```bash
 chmod +x deploy-aws.sh
 ./deploy-aws.sh
 ```
+These scripts:
+1. Validate prerequisites (AWS CLI)
+2. Deploy CloudFormation infrastructure (or guide you via Console)
+3. Help update environment variables
+4. Provide next steps
 
-These scripts will:
-1. Validate prerequisites (Terraform, AWS CLI)
-2. Initialize and deploy Terraform infrastructure
-3. Update environment variables automatically
-4. Provide next steps for development
-
-### Manual Deployment
-
-If you prefer manual deployment:
-
-```bash
-# 1. Deploy infrastructure (Choose one method)
-
-# Method A: AWS Console (Recommended for AWS Academy)
-# Follow the guide in infra/cloudformation/README.md
-
-# Method B: AWS CLI
-cd infra/cloudformation
-aws cloudformation create-stack \
-  --stack-name terraria-vpc \
-  --template-body file://vpc.yaml
-
-# 2. Update environment variables
-# Copy outputs from CloudFormation stacks to .env
-
-# 3. Set up database
-npx prisma migrate dev
-
-# 4. Start application
-pnpm dev
-```
+### Manual
+See `infra/cloudformation/README.md` for stack order and parameters.
 
 ## Environment Variables
 
-Create `.env` from the template below:
-
-```bash
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root with the following variables:
-
-```bash
-# Application Configuration
+Sample `.env`:
+```env
+# App
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here
+NEXTAUTH_SECRET=replace-with-random-32-bytes
 
-# Database Configuration
-DATABASE_URL="file:./dev.db"  # SQLite for development
-# DATABASE_URL="postgresql://user:password@localhost:5432/cloud_terraria"  # PostgreSQL for production
+# Database
+DATABASE_URL="file:./dev.db"  # SQLite (dev)
+# DATABASE_URL="postgresql://user:password@host:5432/dbname"  # RDS (prod)
 
-# Discord OAuth (Required)
-DISCORD_CLIENT_ID=your-discord-client-id
-DISCORD_CLIENT_SECRET=your-discord-client-secret
+# Discord (optional if using Cognito)
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
 
-# AWS Configuration (Required for production)
+# AWS Cognito (optional)
+AUTH_COGNITO_ID=
+AUTH_COGNITO_SECRET=
+AUTH_COGNITO_ISSUER=
+
+# AWS / Lambda
 AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_LAMBDA_FUNCTION_NAME=cloud-terraria-ec2-manager
-
-# Optional: Additional OAuth Providers
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
-
-### Discord OAuth Setup
-
-1. Visit the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Go to OAuth2 settings
-4. Add redirect URI: `http://localhost:3000/api/auth/callback/discord`
-5. Copy Client ID and Client Secret to your `.env` file
-
-### AWS Configuration
-
-Ensure your AWS credentials have the following permissions:
-- EC2 full access (for server management)
-- Lambda invoke permissions
-- IAM role creation (for Terraform deployment)
-- VPC and Security Group management
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_LAMBDA_FUNCTION_NAME=
 ```
 
 ## Development
 
-### Database Setup
-
-The project uses Prisma as the ORM with support for both SQLite (development) and PostgreSQL (production).
-
-**Initialize the database:**
+Database (Prisma):
 ```bash
 npx prisma migrate dev
+# npx prisma studio   # inspect (optional)
 ```
 
-**Reset the database (if needed):**
+Common commands:
 ```bash
-npx prisma migrate reset
-```
-
-**View the database:**
-```bash
-npx prisma studio
-```
-
-### Key Database Models
-
-- **User**: Stores user authentication data
-- **ServerInstance**: Manages Terraria server instances
-- **Account/Session**: NextAuth.js authentication tables
-
-### Development Commands
-
-```bash
-# Start development server
 pnpm dev
-
-# Build for production
 pnpm build
-
-# Start production server
 pnpm start
-
-# Run linting
 pnpm lint
-
-# Run type checking
 pnpm type-check
-
-# Validate project standards
-./scripts/validate-standards.sh
 ```
 
 ## API Reference
 
-### tRPC Endpoints
+tRPC endpoints:
+- `server.create` — Create a new server
+- `server.getAll` — List your servers
+- `server.start` — Start a server
+- `server.stop` — Stop a server
+- `server.delete` — Delete record (stops instance first if running)
 
-The application uses tRPC for type-safe API communication. Key endpoints include:
-
-#### Server Management
-- `server.create` - Create a new Terraria server instance
-- `server.getAll` - Retrieve all user's server instances
-- `server.getById` - Get specific server details
-- `server.start` - Start a stopped server
-- `server.stop` - Stop a running server
-- `server.terminate` - Permanently delete a server
-
-#### Authentication
-- All endpoints require user authentication via NextAuth.js
-- Session-based protection ensures users can only manage their own servers
-
-### Example Usage
-
-```typescript
-// Create a new server
-const server = await api.server.create.mutate({
-  worldName: "My Adventure World",
-  version: "latest",
-  port: 7777
-});
-
-// Get all user servers
-const servers = await api.server.getAll.useQuery();
-```
-
-`src/server/auth.ts`:
-
-```ts
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
-export const getServerAuthSession = (ctx?: { req: any; res: any }) =>
-  getServerSession(ctx?.req, ctx?.res, authOptions);
-```
-
-`src/pages/index.tsx` (sign-in buttons):
-
-```tsx
-import { useSession, signIn, signOut } from "next-auth/react";
-import Link from "next/link";
-
-export default function Home() {
-  const { data: session, status } = useSession();
-  if (status === "loading") return <main className="p-6">Loading...</main>;
-
-  return (
-    <main className="p-6 flex flex-col gap-4">
-      {session ? (
-        <>
-          <div>Hi, {session.user?.name ?? session.user?.email}</div>
-          <Link className="underline" href="/dashboard">Go to Dashboard</Link>
-          <button onClick={() => signOut()} className="border px-3 py-1 rounded-xl">Sign out</button>
-        </>
-      ) : (
-        <div className="flex gap-3">
-          <button onClick={() => signIn("google")} className="border px-3 py-1 rounded-xl">Sign in with Google</button>
-          <button onClick={() => signIn("line")} className="border px-3 py-1 rounded-xl">Sign in with LINE</button>
-          <button onClick={() => signIn("email")} className="border px-3 py-1 rounded-xl">Sign in with Email</button>
-        </div>
-      )}
-    </main>
-  );
-}
-```
-
-## tRPC and App Wiring
-
-`src/server/api/trpc.ts`:
-
-```ts
-import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
-import { getServerAuthSession } from "@/server/auth";
-
-export const createTRPCContext = async ({ req, res }: { req: any; res: any }) => {
-  const session = await getServerAuthSession({ req, res });
-  return { req, res, session };
-};
-
-const t = initTRPC.context<typeof createTRPCContext>().create({ transformer: superjson });
-export const createTRPCRouter = t.router;
-
-const isAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.session?.user) throw new TRPCError({ code: "UNAUTHORIZED" });
-  return next({ ctx: { ...ctx, userId: (ctx.session.user as any).id as string } });
-});
-
-export const publicProcedure = t.procedure;
-export const protectedProcedure = t.procedure.use(isAuthed);
-```
-
-`src/server/aws/lambdaClient.ts`:
-
-```ts
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
-const lambda = new LambdaClient({ region: process.env.AWS_REGION! });
-const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME!;
-
-export async function callLambda(payload: unknown) {
-  const cmd = new InvokeCommand({
-    FunctionName: functionName,
-    Payload: Buffer.from(JSON.stringify(payload)),
-  });
-  const res = await lambda.send(cmd);
-  return res.Payload ? JSON.parse(Buffer.from(res.Payload as Uint8Array).toString()) : null;
-}
-```
-
-`src/server/api/routers/server.ts` (selected operations):
-
-```ts
-import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { prisma } from "../../db";
-import { callLambda } from "../../aws/lambdaClient";
-
-const MAX_SERVERS = Number(process.env.MAX_SERVERS_PER_USER ?? 1);
-
-export const serverRouter = createTRPCRouter({
-  listMine: protectedProcedure.query(async ({ ctx }) => {
-    return prisma.serverInstance.findMany({ where: { userId: ctx.userId }, orderBy: { createdAt: "desc" } });
-  }),
-
-  create: protectedProcedure
-    .input(z.object({ worldName: z.string().default("MyWorld"), version: z.string().default("latest"), port: z.number().default(7777) }))
-    .mutation(async ({ ctx, input }) => {
-      const count = await prisma.serverInstance.count({ where: { userId: ctx.userId, state: { in: ["PENDING","RUNNING","STOPPED"] } } });
-      if (count >= MAX_SERVERS) throw new Error("Quota exceeded");
-
-      const rec = await prisma.serverInstance.create({ data: { userId: ctx.userId, ...input } });
-      const out = await callLambda({ action: "CREATE", userId: ctx.userId, ...input });
-      if (out?.ok && out.instanceId) {
-        await prisma.serverInstance.update({ where: { id: rec.id }, data: { instanceId: out.instanceId, state: "PENDING" } });
-        return { id: rec.id };
-      }
-      await prisma.serverInstance.update({ where: { id: rec.id }, data: { state: "ERROR" } });
-      throw new Error(out?.error ?? "Lambda CREATE failed");
-    }),
-});
-```
+See: `src/server/api/routers/server.ts`, `src/server/api/trpc.ts`, `src/server/auth/config.ts`, `src/app/auth/signin/page.tsx`.
 
 ## Infrastructure
 
-### AWS Architecture
-
-The infrastructure is deployed using AWS CloudFormation and consists of:
-
-- **VPC and Networking**: Isolated network environment with public and private subnets, NAT Gateway
-- **Security Groups**: Firewall rules allowing Terraria traffic on port 7777 and database access
-- **IAM Roles**: Permissions for Lambda to manage EC2 instances
-- **Lambda Function**: Serverless EC2 lifecycle management
-- **RDS PostgreSQL**: Managed database service for application data
-- **EC2 Instances**: On-demand Ubuntu hosts running Dockerized Terraria servers
-
-### Infrastructure Components
-
-**VPC Template (vpc.yaml):**
-```yaml
-Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-
-  TerrariaSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 7777
-          ToPort: 7777
-          CidrIp: 0.0.0.0/0
-          Description: Terraria game port
-```
-
-**Lambda Template (lambda.yaml):**
-```yaml
-Resources:
-  LambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: terraria-server-manager
-      Runtime: nodejs20.x
-      Handler: index.handler
-      Timeout: 60
-      Code:
-        ZipFile: |
-          # Lambda function code for EC2 management
-```
-
-**RDS Template (rds.yaml):**
-```yaml
-Resources:
-  DBInstance:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      Engine: postgres
-      EngineVersion: '15.4'
-      DBInstanceClass: db.t3.micro
-      AllocatedStorage: 20
-      StorageType: gp3
-      StorageEncrypted: true
-```
-
-### Deployment Configuration
-
-CloudFormation templates are located in `infra/cloudformation/`. 
-
-**Available Templates:**
-- `vpc.yaml` - VPC with public and private subnets
-- `rds.yaml` - PostgreSQL database instance
-- `lambda.yaml` - Lambda function for EC2 management
-
-**Quick Deploy via AWS Console:**
-
-1. Navigate to CloudFormation in AWS Console
-2. Create Stack > Upload template file
-3. Deploy in this order:
-   - VPC stack first
-   - RDS stack (use VPC outputs)
-   - Lambda stack (use VPC outputs)
-
-**Parameters Example (`parameters.example.json`):**
-```json
-{
-  "Parameters": {
-    "Environment": "production",
-    "DBPassword": "SecurePassword123!",
-    "InstanceType": "t2.medium"
-  }
-}
-```
-
-See `infra/cloudformation/README.md` for detailed deployment instructions.
-
-
-See `infra/cloudformation/README.md` for detailed deployment instructions.
-
-For AWS Academy users, Terraform infrastructure is available in the `terraform-infrastructure` branch.
-
-## Security
-
-`vpc.tf`:
-
-```hcl
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  tags = { Name = "${var.project}-vpc" }
-}
-
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-  tags = { Name = "${var.project}-igw" }
-}
-
-resource "aws_subnet" "public_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_cidr
-  map_public_ip_on_launch = true
-  availability_zone       = "${var.region}a"
-  tags = { Name = "${var.project}-public-a" }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-  tags = { Name = "${var.project}-public-rt" }
-}
-
-resource "aws_route" "public_inet" {
-  route_table_id         = aws_route_table.public.id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.igw.id
-}
-
-resource "aws_route_table_association" "public_a" {
-  subnet_id      = aws_subnet.public_a.id
-  route_table_id = aws_route_table.public.id
-}
-```
-
-`sg.tf`:
-
-```hcl
-resource "aws_security_group" "terraria" {
-  name        = "${var.project}-sg"
-  description = "Allow Terraria and optional SSH"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "Terraria"
-    from_port   = 7777
-    to_port     = 7777
-    protocol    = "tcp"
-    cidr_blocks = [var.allow_terraria_cidr]
-  }
-
-  dynamic "ingress" {
-    for_each = var.open_ssh ? [1] : []
-    content {
-      description = "SSH"
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = { Name = "${var.project}-sg" }
-}
-```
-
-`iam.tf`:
-
-```hcl
-data "aws_iam_policy_document" "lambda_assume" {
-  statement {
-    effect = "Allow"
-    principals { type = "Service" identifiers = ["lambda.amazonaws.com"] }
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-resource "aws_iam_role" "lambda_role" {
-  name               = "${var.project}-lambda-role"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-}
-
-resource "aws_iam_role_policy_attachment" "logs" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-data "aws_iam_policy_document" "ec2_access" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ec2:RunInstances", "ec2:StartInstances", "ec2:StopInstances",
-      "ec2:TerminateInstances", "ec2:DescribeInstances", "ec2:CreateTags",
-      "ec2:DescribeImages", "ec2:DescribeSubnets", "ec2:DescribeSecurityGroups",
-      "ec2:DescribeInstanceStatus", "ec2:CreateNetworkInterface",
-      "ec2:AttachNetworkInterface", "ec2:DeleteNetworkInterface", "ec2:DescribeNetworkInterfaces"
-    ]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_policy" "ec2_access" {
-  name   = "${var.project}-lambda-ec2"
-  policy = data.aws_iam_policy_document.ec2_access.json
-}
-
-resource "aws_iam_role_policy_attachment" "ec2_attach" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.ec2_access.arn
-}
-```
-
-`lambda.tf`:
-
-```hcl
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../aws/lambda"
-  output_path = "${path.module}/lambda.zip"
-}
-
-resource "aws_lambda_function" "ec2_manager" {
-  function_name = var.lambda_name
-  role          = aws_iam_role.lambda_role.arn
-  runtime       = "nodejs20.x"
-  handler       = "index.handler"
-  filename      = data.archive_file.lambda_zip.output_path
-  timeout       = var.lambda_timeout
-  architectures = ["x86_64"]
-
-  environment {
-    variables = {
-      AWS_REGION        = var.region
-      AMI_ID            = var.ami_id
-      INSTANCE_TYPE     = var.instance_type
-      SECURITY_GROUP_ID = aws_security_group.terraria.id
-      SUBNET_ID         = aws_subnet.public_a.id
-      KEY_NAME          = var.key_name
-    }
-  }
-
-  depends_on = [aws_iam_role_policy_attachment.logs, aws_iam_role_policy_attachment.ec2_attach]
-}
-
-resource "aws_lambda_function_url" "public" {
-  function_name      = aws_lambda_function.ec2_manager.function_name
-  authorization_type = "NONE"
-  cors {
-    allow_origins = ["*"]
-    allow_methods = ["POST", "OPTIONS"]
-  }
-}
-```
-
-`outputs.tf`:
-
-```hcl
-output "lambda_name"       { value = aws_lambda_function.ec2_manager.function_name }
-output "lambda_arn"        { value = aws_lambda_function.ec2_manager.arn }
-output "lambda_url"        { value = try(aws_lambda_function_url.public.function_url, "") }
-output "security_group_id" { value = aws_security_group.terraria.id }
-output "subnet_id"         { value = aws_subnet.public_a.id }
-```
-
-`main.tf` can be empty or used to include modules if you split files further.
-
-## Lambda Function
-
-`aws/lambda/index.js`:
-
-```js
-import {
-  EC2Client, RunInstancesCommand, StartInstancesCommand, StopInstancesCommand,
-  TerminateInstancesCommand, DescribeInstancesCommand
-} from "@aws-sdk/client-ec2";
-
-const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
-const AMI_ID = process.env.AMI_ID;
-const INSTANCE_TYPE = process.env.INSTANCE_TYPE ?? "t3.small";
-const SECURITY_GROUP_ID = process.env.SECURITY_GROUP_ID;
-const SUBNET_ID = process.env.SUBNET_ID;
-const KEY_NAME = process.env.KEY_NAME || "";
-
-const ec2 = new EC2Client({ region: REGION });
-
-export const handler = async (event) => {
-  const body = typeof event.body === "string" ? JSON.parse(event.body) : (event.body ?? event);
-  const { action, instanceId, userId } = body;
-  const worldName = body.worldName ?? "MyWorld";
-  const version = body.version ?? "latest";
-  const serverPort = Number(body.port ?? 7777);
-
-  try {
-    if (action === "CREATE") {
-      const userData = Buffer.from(`#cloud-config
-runcmd:
-  - apt-get update -y
-  - apt-get install -y docker.io
-  - systemctl enable docker
-  - systemctl start docker
-  - docker run -d --restart always --name terraria -p ${serverPort}:7777 -e WORLD_NAME=${worldName} --volume /opt/terraria:/root/.local/share/Terraria tccr/terraria-server:${version}
-`).toString("base64");
-
-      const run = await ec2.send(new RunInstancesCommand({
-        ImageId: AMI_ID,
-        InstanceType: INSTANCE_TYPE,
-        MinCount: 1,
-        MaxCount: 1,
-        KeyName: KEY_NAME || undefined,
-        SecurityGroupIds: [SECURITY_GROUP_ID],
-        SubnetId: SUBNET_ID,
-        UserData: userData,
-        TagSpecifications: [{
-          ResourceType: "instance",
-          Tags: [
-            { Key: "Project", Value: "Terrakit" },
-            { Key: "OwnerUserId", Value: userId },
-            { Key: "Service", Value: "Terraria" }
-          ]
-        }]
-      }));
-      return { ok: true, instanceId: run.Instances?.[0]?.InstanceId };
-    }
-
-    if (!instanceId) return { ok: false, error: "instanceId required" };
-
-    if (action === "START")      { await ec2.send(new StartInstancesCommand({ InstanceIds: [instanceId] })); return { ok: true }; }
-    if (action === "STOP")       { await ec2.send(new StopInstancesCommand({ InstanceIds: [instanceId] }));  return { ok: true }; }
-    if (action === "TERMINATE")  { await ec2.send(new TerminateInstancesCommand({ InstanceIds: [instanceId] })); return { ok: true }; }
-
-    if (action === "STATUS") {
-      const d = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
-      const res = d.Reservations?.[0]?.Instances?.[0];
-      return { ok: true, state: res?.State?.Name, publicIp: res?.PublicIpAddress };
-    }
-
-    return { ok: false, error: "unknown action" };
-  } catch (e) {
-    console.error(e);
-    return { ok: false, error: e?.message ?? "error" };
-  }
-};
-```
-
-`aws/lambda/package.json`:
-
-```json
-{
-  "name": "terraria-ec2-manager",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "@aws-sdk/client-ec2": "^3.678.0"
-  }
-}
-```
-
-## Security and Cost Management
-
-### Security Controls
-- **Network Isolation**: Dedicated VPC with controlled ingress/egress
-- **Port Management**: Only TCP 7777 exposed for game traffic
-- **SSH Access**: Disabled by default, enable only when necessary
-- **Authentication**: Discord OAuth with NextAuth.js session management
-- **Resource Tagging**: All resources tagged for cost tracking and governance
-
-### Cost Controls
-- **User Quotas**: Configurable `MAX_SERVERS_PER_USER` limits
-- **Instance Types**: t3.micro for cost optimization
-- **Auto-Cleanup**: Implement auto-stop/terminate for idle servers
-- **Storage**: Use EBS GP3 for cost-effective persistent storage
-- **Monitoring**: CloudWatch billing alerts and usage tracking
-
-### Best Practices
-- Store world saves on EBS or sync to S3 for persistence
-- Use private subnets with NAT Gateway in production
-- Implement server TTL and automatic cleanup jobs
-- Regular security group audits and access reviews
+CloudFormation templates: `infra/cloudformation/` (VPC, RDS, Lambda). For a comparison of CloudFormation vs Terraform, see `docs/INFRASTRUCTURE.md`.
+
+## Security and Cost
+
+Security:
+- VPC isolation, least‑privilege IAM
+- Open only required ports (HTTP/HTTPS, Terraria 7777)
+- Use Secrets Manager/SSM for production secrets
+- CloudWatch Logs + RDS Performance Insights
+
+Cost:
+- RDS db.t3.micro: Free Tier eligible; afterwards ~ $18/mo (20GB)
+- EC2: size/hour dependent; stop when idle
+- Lambda control plane typically within free tier
 
 ## Troubleshooting
 
-### Common Issues
-
-#### Server Management
 ```bash
-# Check server status
-curl -X POST https://your-api.com/api/servers/status -d '{"instanceId":"i-1234567890abcdef0"}'
-
-# View CloudWatch logs
-aws logs tail /aws/lambda/terraria-ec2-manager --follow
-```
-
-#### Connection Problems
-- **No Public IP**: Verify subnet configuration and `map_public_ip_on_launch = true`
-- **Port 7777 Blocked**: Check Security Group ingress rules and local firewall
-- **Timeout Issues**: Confirm instance is running and game server is started
-
-#### Authentication Errors
-- **Callback Mismatch**: Verify `NEXTAUTH_URL` matches provider redirect URIs
-- **Session Issues**: Clear browser cookies and check environment variables
-- **Provider Configuration**: Confirm Discord application settings
-
-#### Database Problems
-- **Migration Errors**: Run `npx prisma migrate dev` to sync schema
-- **Connection Issues**: Verify `DATABASE_URL` format and accessibility
-- **Data Corruption**: Use `npx prisma db push --force-reset` for development
-
-### Debug Commands
-```bash
-# Check AWS credentials
+# Verify AWS credentials
 aws sts get-caller-identity
 
-# Validate Terraform configuration
-terraform validate
-terraform plan
+# CloudFormation stack status
+aws cloudformation describe-stacks --stack-name terraria-vpc
 
-# Test Lambda function locally
-aws lambda invoke --function-name terraria-ec2-manager --payload '{"action":"STATUS"}' response.json
+# Lambda logs (replace function name if different)
+aws logs tail /aws/lambda/terraria-ec2-manager --follow
 
-# Check Next.js build
-npm run build
-npm run start
+# Next.js
+pnpm build && pnpm start
 ```
 
-### Monitoring and Logs
-- **Application Logs**: Check Vercel deployment logs
-- **Lambda Logs**: CloudWatch `/aws/lambda/terraria-ec2-manager`
-- **Infrastructure**: Terraform state and AWS CloudTrail
-- **Database**: Prisma query logs and performance metrics
-
 ## Contributing
-
-We welcome contributions to Cloud Terraria! Please follow these guidelines:
-
-### Development Process
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** using conventional commits (`git commit -m 'feat: add amazing feature'`)
-4. **Push** to your branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Code Standards
-- **Formatting**: Use Prettier and ESLint configurations
-- **Testing**: Add tests for new features
-- **Documentation**: Update README and inline comments
-- **Commits**: Follow [Conventional Commits](https://www.conventionalcommits.org/)
-
-### Commit Types
-- `feat`: New features
-- `fix`: Bug fixes
-- `docs`: Documentation changes
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Adding or updating tests
-- `chore`: Build process or auxiliary tool changes
-
-### Review Process
-- All PRs require review from maintainers
-- CI checks must pass (linting, testing, build)
-- Documentation updates are required for API changes
-- Breaking changes require major version bump
-
-### Getting Help
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Security**: Report security issues privately to maintainers
-
-## Roadmap
-
-### Phase 1: Core Stability
-- [ ] Enhanced error handling and retry logic
-- [ ] Comprehensive testing suite
-- [ ] Performance optimization
-- [ ] Security audit and hardening
-
-### Phase 2: Advanced Features
-- [ ] Payment integration and billing management
-- [ ] Multi-region deployment support
-- [ ] Advanced server configurations
-- [ ] Real-time server monitoring dashboard
-
-### Phase 3: Enterprise Features
-- [ ] Team management and sharing
-- [ ] Advanced backup and restore
-- [ ] Custom mod support
-- [ ] API rate limiting and quotas
-
-### Phase 4: Platform Integration
-- [ ] Mobile app companion
-- [ ] Discord bot integration
-- [ ] Community features and server discovery
-- [ ] Advanced analytics and reporting
-
-## Support
-
-### Documentation
-- [Quick Start Guide](QUICK_START.md)
-- [AWS Setup Guide](AWS_SETUP_GUIDE.md)
-- [Visual Guide](VISUAL_GUIDE.md)
-- [Design System](DESIGN_SYSTEM.md)
-
-### Community
-- **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: Community support and questions
-- **Discord**: Real-time community chat (coming soon)
-
-### Commercial Support
-For enterprise deployments and commercial support, please contact the maintainers.
+1. Fork the repo
+2. Create a branch (`git checkout -b feat/awesome`)
+3. Commit with conventional commits
+4. Push and open a PR
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-### Third-Party Licenses
-- Next.js: MIT License
-- Prisma: Apache License 2.0
-- AWS SDK: Apache License 2.0
-- Discord OAuth: MIT License
-
----
-
-**Cloud Terraria** - Self-hosted Terraria server management made simple.
-
-Built with ❤️ for the Terraria community.
+MIT — see `LICENSE`.
