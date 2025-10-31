@@ -1,0 +1,198 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 instance for hosting Cloud Terraria web application'
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: VPC ID from network stack
+  PublicSubnetId:
+    Type: String
+    Description: Public Subnet ID for web server
+  KeyName:
+    Type: String
+    Description: EC2 Key Pair name (leave empty to disable SSH key)
+    Default: ""
+  DatabaseUrl:
+    Type: String
+    Description: PostgreSQL connection string
+    NoEcho: true
+  LambdaFunctionName:
+    Type: String
+    Description: Lambda function name for server management
+  AWSRegion:
+    Type: String
+    Description: AWS Region
+    Default: us-east-1
+
+Resources:
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: cloud-terraria-web-sg
+      GroupDescription: Security group for web application server
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from anywhere
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH from anywhere
+      Tags:
+        - Key: Name
+          Value: cloud-terraria-web-sg
+        - Key: Project
+          Value: Cloud-Terraria
+
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0ebfd941bbafe70c6  # Ubuntu 22.04 LTS in us-east-1
+      InstanceType: t2.micro
+      KeyName: vockey
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      IamInstanceProfile: LabInstanceProfile
+      Tags:
+        - Key: Name
+          Value: cloud-terraria-web
+        - Key: Project
+          Value: Cloud-Terraria
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          # Add labsuser SSH key to authorized_keys
+          echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMR5icrPjfKVDXi9A1pseBajiVeLktzdsaotF+PJs9Icm89JkyMCS8Jank2CrRdevQOGXEoRn43YxtJp359cJJ55QJwBYzUNKhqs9lF8S8K4DPHG0nWSYDje5Nym1y352YWIwF/ZTCt0mfiJVJshxWrCGYmoXrEcbwC91kfIivV+A8LoQhuK8G7MAMhTYauoRas9nOHxHgUwZ+INnBsJ4A9AwT9/6OGWMOBlNcshLeG0BYA3PJ/AItsXbsbSCW1a+As1dzaxdaydq1QIW0ve8jT7CYFezdEzYAfwu+vHn/oKE0m9H8xe/iaNo+jZ49fStVwz7dLm+62dNuukyS4Gil labsuser" >> /home/ubuntu/.ssh/authorized_keys
+          chmod 600 /home/ubuntu/.ssh/authorized_keys
+          chown ubuntu:ubuntu /home/ubuntu/.ssh/authorized_keys
+          
+          # Update system
+          apt-get update -y
+          apt-get upgrade -y
+          
+          # Install Node.js 20.x
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          
+          # Install build tools
+          apt-get install -y build-essential git
+          
+          # Install nginx
+          apt-get install -y nginx
+          
+          # Create app directory
+          mkdir -p /opt/terraria-app
+          cd /opt/terraria-app
+          
+          # Create systemd service for Next.js app
+          cat > /etc/systemd/system/terraria-app.service <<'EOF'
+          [Unit]
+          Description=Cloud Terraria Web Application
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/opt/terraria-app
+          Environment="NODE_ENV=production"
+          Environment="DATABASE_URL=${DatabaseUrl}"
+          Environment="AWS_REGION=${AWSRegion}"
+          Environment="AWS_LAMBDA_FUNCTION_NAME=${LambdaFunctionName}"
+          Environment="AUTH_SECRET=your-secret-key-change-this-in-production"
+          ExecStart=/usr/bin/npm start
+          Restart=always
+          RestartSec=10
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Configure nginx as reverse proxy
+          cat > /etc/nginx/sites-available/terraria-app <<'EOF'
+          server {
+              listen 80;
+              server_name _;
+              
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+          EOF
+          
+          ln -s /etc/nginx/sites-available/terraria-app /etc/nginx/sites-enabled/
+          rm -f /etc/nginx/sites-enabled/default
+          
+          # Test nginx config and restart
+          nginx -t
+          systemctl restart nginx
+          systemctl enable nginx
+          
+          # Create deployment script
+          cat > /opt/deploy-app.sh <<'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "Deploying Cloud Terraria application..."
+          cd /opt/terraria-app
+          
+          # Stop service
+          systemctl stop terraria-app || true
+          
+          # Remove old files
+          rm -rf /opt/terraria-app/*
+          
+          # Application files will be deployed here via GitHub Actions or manual upload
+          # For now, create a placeholder
+          echo "Application needs to be deployed via SSH or CI/CD"
+          echo "Upload your built Next.js app to /opt/terraria-app"
+          echo "Then run: systemctl restart terraria-app"
+          
+          EOF
+          
+          chmod +x /opt/deploy-app.sh
+          
+          # Create ready marker
+          touch /opt/terraria-app/.ready
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref WebServerInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+  
+  PublicIp:
+    Description: Public IP address of web server
+    Value: !GetAtt WebServerInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIp'
+  
+  PublicDnsName:
+    Description: Public DNS name
+    Value: !GetAtt WebServerInstance.PublicDnsName
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicDnsName'
+  
+  WebUrl:
+    Description: URL to access the web application
+    Value: !Sub 'http://${WebServerInstance.PublicIp}'

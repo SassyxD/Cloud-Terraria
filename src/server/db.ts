@@ -2,6 +2,10 @@ import { PrismaClient } from "@prisma/client";
 
 import { env } from "~/env";
 
+// Debug: Check DATABASE_URL
+console.log("[DB] DATABASE_URL from process.env:", process.env.DATABASE_URL);
+console.log("[DB] DATABASE_URL from env:", env.DATABASE_URL);
+
 const createPrismaClient = () =>
   new PrismaClient({
     log:

@@ -35,36 +35,60 @@ export const authConfig = {
   providers: [
     // Mock Credentials Provider for Development
     CredentialsProvider({
+      id: "credentials",
       name: "Mock Account",
       credentials: {
         username: { label: "Username", type: "text", placeholder: "demo" },
       },
       async authorize(credentials) {
-        // Accept any username for demo purposes
-        if (!credentials?.username) {
+        try {
+          console.log("[Auth] Starting authorization...");
+          
+          // Accept any username for demo purposes
+          if (!credentials?.username) {
+            console.log("[Auth] No username provided");
+            return null;
+          }
+
+          const username = credentials.username as string;
+          console.log(`[Auth] Attempting to authorize user: ${username}`);
+
+          // Find or create user in database
+          const email = `${username}@demo.local`;
+          console.log(`[Auth] Looking for user with email: ${email}`);
+          
+          let user = await db.user.findFirst({
+            where: { email },
+          });
+
+          if (!user) {
+            console.log(`[Auth] User not found, creating new user...`);
+            user = await db.user.create({
+              data: {
+                name: username,
+                email: email,
+                emailVerified: new Date(),
+              },
+            });
+            console.log(`[Auth] User created successfully with ID: ${user.id}`);
+          } else {
+            console.log(`[Auth] User found with ID: ${user.id}`);
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          };
+        } catch (error) {
+          console.error("[Auth] Error during authorization:", error);
+          // Return a simple error message for debugging
+          if (error instanceof Error) {
+            console.error("[Auth] Error message:", error.message);
+            console.error("[Auth] Error stack:", error.stack);
+          }
           return null;
         }
-
-        // Find or create user in database
-        let user = await db.user.findFirst({
-          where: { email: `${credentials.username}@demo.local` },
-        });
-
-        if (!user) {
-          user = await db.user.create({
-            data: {
-              name: credentials.username as string,
-              email: `${credentials.username}@demo.local`,
-              emailVerified: new Date(),
-            },
-          });
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        };
       },
     }),
     // AWS Cognito Provider (Production)

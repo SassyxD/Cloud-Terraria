@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lambda Function for managing Terraria EC2 instances'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'cloud-terraria'
+    Description: Project name used for resource naming
+
+  TerrariaAMI:
+    Type: String
+    Default: 'ami-0ebfd941bbafe70c6'
+    Description: Amazon Linux 2023 AMI ID (us-east-1)
+
+  TerrariaInstanceType:
+    Type: String
+    Default: 't2.micro'
+    Description: EC2 instance type for Terraria servers
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+
+Resources:
+  # Lambda Execution Role (using LabRole for AWS Academy)
+  # Note: In AWS Academy, we use the existing LabRole
+  
+  # Lambda Function
+  TerrariaServerManager:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-server-manager'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          REGION: !Ref AWS::Region
+          AMI_ID: !Ref TerrariaAMI
+          INSTANCE_TYPE: !Ref TerrariaInstanceType
+          SECURITY_GROUP_ID:
+            Fn::ImportValue: !Sub '${ProjectName}-TerrariaSecurityGroupId'
+          SUBNET_ID:
+            Fn::ImportValue: !Sub '${ProjectName}-PublicSubnet1Id'
+          KEY_NAME: 'vockey'
+      Code:
+        ZipFile: |
+          const { EC2Client, RunInstancesCommand, StartInstancesCommand, StopInstancesCommand,
+            TerminateInstancesCommand, DescribeInstancesCommand } = require("@aws-sdk/client-ec2");
+
+          const REGION = process.env.REGION ?? "us-east-1";
+          const AMI_ID = process.env.AMI_ID;
+          const INSTANCE_TYPE = process.env.INSTANCE_TYPE ?? "t2.micro";
+          const SECURITY_GROUP_ID = process.env.SECURITY_GROUP_ID;
+          const SUBNET_ID = process.env.SUBNET_ID;
+          const KEY_NAME = process.env.KEY_NAME || "";
+
+          const ec2 = new EC2Client({ region: REGION });
+
+          exports.handler = async (event) => {
+            const body = typeof event.body === "string" ? JSON.parse(event.body) : (event.body ?? event);
+            const action = body.action;
+            const instanceId = body.instanceId;
+            const userId = body.userId;
+            const worldName = body.worldName ?? "MyWorld";
+            const version = body.version ?? "latest";
+            const serverPort = Number(body.port ?? 7777);
+
+            try {
+              // START action creates a new instance if instanceId is not provided
+              if (action === "START") {
+                // If instanceId is provided, start existing instance
+                if (instanceId) {
+                  await ec2.send(new StartInstancesCommand({ InstanceIds: [instanceId] }));
+                  
+                  // Get instance info after starting
+                  const d = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
+                  const res = d.Reservations?.[0]?.Instances?.[0];
+                  
+                  return { 
+                    ok: true, 
+                    instanceId,
+                    state: res?.State?.Name ?? "pending",
+                    publicIp: res?.PublicIpAddress 
+                  };
+                }
+                
+                // Otherwise, create new instance
+                const userData = Buffer.from(`#!/bin/bash
+          apt-get update -y
+          apt-get install -y docker.io
+          systemctl enable docker
+          systemctl start docker
+          docker run -d --restart always --name terraria -p ${serverPort}:7777 -e WORLD_NAME=${worldName} --volume /opt/terraria:/root/.local/share/Terraria tccr/terraria-server:${version}
+          `).toString("base64");
+
+                const run = await ec2.send(new RunInstancesCommand({
+                  ImageId: AMI_ID,
+                  InstanceType: INSTANCE_TYPE,
+                  MinCount: 1,
+                  MaxCount: 1,
+                  KeyName: KEY_NAME || undefined,
+                  SecurityGroupIds: SECURITY_GROUP_ID ? [SECURITY_GROUP_ID] : undefined,
+                  SubnetId: SUBNET_ID,
+                  UserData: userData,
+                  TagSpecifications: [{
+                    ResourceType: "instance",
+                    Tags: [
+                      { Key: "Project", Value: "Terrakit" },
+                      { Key: "OwnerUserId", Value: userId ?? "unknown" },
+                      { Key: "Service", Value: "Terraria" },
+                      { Key: "WorldName", Value: worldName }
+                    ]
+                  }]
+                }));
+                
+                const newInstanceId = run.Instances?.[0]?.InstanceId;
+                const publicIp = run.Instances?.[0]?.PublicIpAddress;
+                
+                return { 
+                  ok: true, 
+                  instanceId: newInstanceId,
+                  state: "pending",
+                  publicIp 
+                };
+              }
+
+              if (!instanceId) return { ok: false, error: "instanceId required" };
+
+              if (action === "STOP") { 
+                await ec2.send(new StopInstancesCommand({ InstanceIds: [instanceId] }));  
+                return { ok: true, state: "stopping" }; 
+              }
+              
+              if (action === "TERMINATE") { 
+                await ec2.send(new TerminateInstancesCommand({ InstanceIds: [instanceId] })); 
+                return { ok: true, state: "terminating" }; 
+              }
+
+              if (action === "STATUS") {
+                const d = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
+                const res = d.Reservations?.[0]?.Instances?.[0];
+                return { ok: true, state: res?.State?.Name, publicIp: res?.PublicIpAddress };
+              }
+
+              return { ok: false, error: "unknown action" };
+            } catch (e) {
+              console.error(e);
+              const errMsg = e?.message ?? String(e ?? "error");
+              return { ok: false, error: errMsg };
+            }
+          };
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-lambda'
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Lambda Function URL (for easy invocation)
+  LambdaFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt TerrariaServerManager.Arn
+
+  # Permission for Function URL
+  LambdaFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TerrariaServerManager
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref TerrariaServerManager
+    Export:
+      Name: !Sub '${ProjectName}-LambdaFunctionName'
+
+  LambdaFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt TerrariaServerManager.Arn
+    Export:
+      Name: !Sub '${ProjectName}-LambdaFunctionArn'
+
+  LambdaFunctionUrl:
+    Description: Lambda function URL
+    Value: !GetAtt LambdaFunctionUrl.FunctionUrl
+    Export:
+      Name: !Sub '${ProjectName}-LambdaFunctionUrl'

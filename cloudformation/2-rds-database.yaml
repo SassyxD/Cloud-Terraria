@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS PostgreSQL Database for Cloud Terraria'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'cloud-terraria'
+    Description: Project name used for resource naming
+
+  DBUsername:
+    Type: String
+    Default: 'postgres'
+    Description: Database master username
+    NoEcho: false
+
+  DBPassword:
+    Type: String
+    Default: 'TerrariaDB2024!'
+    Description: Database master password
+    NoEcho: true
+    MinLength: 8
+
+  DBInstanceClass:
+    Type: String
+    Default: 'db.t3.micro'
+    Description: Database instance class
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: Allocated storage in GB
+    MinValue: 20
+    MaxValue: 100
+
+Resources:
+  # RDS PostgreSQL Instance
+  TerrariaDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub '${ProjectName}-db'
+      DBName: terraria
+      Engine: postgres
+      EngineVersion: '15.10'
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      
+      # Credentials
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      
+      # Network
+      DBSubnetGroupName: 
+        Fn::ImportValue: !Sub '${ProjectName}-DBSubnetGroupName'
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub '${ProjectName}-RDSSecurityGroupId'
+      PubliclyAccessible: true
+      
+      # Backup
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'mon:04:00-mon:05:00'
+      
+      # Monitoring
+      EnableCloudwatchLogsExports:
+        - postgresql
+      # MonitoringInterval: 60  # Disabled for AWS Academy (LabRole doesn't have permissions)
+      # MonitoringRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      
+      # Other settings
+      AutoMinorVersionUpgrade: true
+      DeletionProtection: false
+      CopyTagsToSnapshot: true
+      
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-database'
+        - Key: Project
+          Value: !Ref ProjectName
+
+Outputs:
+  DBEndpoint:
+    Description: Database endpoint
+    Value: !GetAtt TerrariaDatabase.Endpoint.Address
+    Export:
+      Name: !Sub '${ProjectName}-DBEndpoint'
+
+  DBPort:
+    Description: Database port
+    Value: !GetAtt TerrariaDatabase.Endpoint.Port
+    Export:
+      Name: !Sub '${ProjectName}-DBPort'
+
+  DBName:
+    Description: Database name
+    Value: terraria
+    Export:
+      Name: !Sub '${ProjectName}-DBName'
+
+  ConnectionString:
+    Description: Database connection string (without password)
+    Value: !Sub 'postgresql://${DBUsername}:PASSWORD@${TerrariaDatabase.Endpoint.Address}:${TerrariaDatabase.Endpoint.Port}/terraria'

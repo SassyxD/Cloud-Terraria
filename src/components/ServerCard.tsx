@@ -7,6 +7,7 @@ interface ServerCardProps {
   server: {
     id: number;
     instanceId: string | null;
+    publicIp: string | null;
     state: string;
     worldName: string;
     version: string;
@@ -23,7 +24,10 @@ interface ServerStatus {
 }
 
 export function ServerCard({ server, onUpdate }: ServerCardProps) {
-  const [serverStatus, setServerStatus] = useState<ServerStatus>({});
+  const [serverStatus, setServerStatus] = useState<ServerStatus>({
+    publicIp: server.publicIp ?? undefined,
+    state: server.state
+  });
   const [copying, setCopying] = useState(false);
 
   const startMutation = api.server.start.useMutation({
@@ -63,10 +67,17 @@ export function ServerCard({ server, onUpdate }: ServerCardProps) {
   };
 
   useEffect(() => {
-    if (server.instanceId && server.state === "RUNNING") {
+    // Update from props when server changes
+    setServerStatus({
+      publicIp: server.publicIp ?? undefined,
+      state: server.state
+    });
+    
+    // Fetch fresh status if instance is running
+    if (server.instanceId && server.state.toUpperCase() === "RUNNING") {
       fetchServerStatus();
     }
-  }, [server.instanceId, server.state]);
+  }, [server.instanceId, server.state, server.publicIp]);
 
   const fetchServerStatus = async () => {
     try {
@@ -162,7 +173,7 @@ export function ServerCard({ server, onUpdate }: ServerCardProps) {
 
         {/* Server Info */}
         <div className="space-y-2 pt-2 border-t border-[#2a3548]">
-          {serverStatus.publicIp && server.state === "RUNNING" && (
+          {serverStatus.publicIp && (
             <div className="mb-3 p-3 bg-[#2a3548] rounded-lg border border-[#4a90e2]/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-gray-400 uppercase tracking-wider">Connect to Server</span>
@@ -170,16 +181,16 @@ export function ServerCard({ server, onUpdate }: ServerCardProps) {
                   onClick={() => copyToClipboard(`${serverStatus.publicIp}:${server.port}`)}
                   className="text-xs text-[#4a90e2] hover:text-[#5fa3e3] transition-colors"
                 >
-                  {copying ? "Copied!" : "Copy"}
+                  {copying ? "✓ Copied!" : "📋 Copy"}
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-white bg-[#1a2537] px-3 py-2 rounded border border-[#3a4558]">
+                <code className="flex-1 text-sm font-mono text-[#5fd35f] bg-[#1a2537] px-3 py-2 rounded border border-[#3a4558]">
                   {serverStatus.publicIp}:{server.port}
                 </code>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Use this IP address in Terraria multiplayer menu
+                💡 Copy this address and paste in Terraria → Multiplayer → Join via IP
               </p>
             </div>
           )}

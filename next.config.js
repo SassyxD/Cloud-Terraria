@@ -29,6 +29,14 @@ const config = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // Skip trailing slash redirects for ngrok
+  skipTrailingSlashRedirect: true,
+  
+  // Trust ngrok proxy headers
+  experimental: {
+    trustHostHeader: true,
+  },
 };
 
 export default config;

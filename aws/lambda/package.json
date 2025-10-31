@@ -1,7 +1,6 @@
 {
   "name": "terraria-ec2-manager",
   "version": "1.0.0",
-  "type": "module",
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.678.0"
   }

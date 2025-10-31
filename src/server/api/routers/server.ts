@@ -34,12 +34,18 @@ export const serverRouter = createTRPCRouter({
 
   const out = (await callLambda({ action: "START", userId: userId, ...input })) as LambdaResponse | null;
   const instanceId = typeof out?.instanceId === "string" ? out.instanceId : undefined;
+  const publicIp = typeof out?.publicIp === "string" ? out.publicIp : undefined;
+  
   if (out?.ok && instanceId) {
         await ctx.db.serverInstance.update({
           where: { id: rec.id },
-          data: { instanceId, state: "running" },
+          data: { 
+            instanceId, 
+            publicIp,
+            state: "running" 
+          },
         });
-        return { id: rec.id, instanceId, message: "Server created successfully" };
+        return { id: rec.id, instanceId, publicIp, message: "Server created successfully" };
       }
 
       await ctx.db.serverInstance.update({ where: { id: rec.id }, data: { state: "ERROR" } });
